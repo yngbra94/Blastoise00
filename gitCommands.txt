@@ -14,12 +14,14 @@ This is a list of useful git hub commands.
     Moving between branches
         $ git checkout <branch> 
     
-    
+%%  git stash
+    Utility : Save changes that you don’t want to commit immediately.
+    How to : git stash in your working directory. git stash apply if you want to bring your saved changes back
 
 
 
 %%  git init. To initialize a git repository for a new or existing project. 
     This is used to set up a git repository fir the first time. 
-    git init
+    How to : git init (DO NOT USED FOR THIS PROJECT)
 
 
