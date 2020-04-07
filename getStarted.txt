@@ -3,6 +3,9 @@ How to be a part of the Git repository Blastoise00
 Step 1: Make sure that git is installed and has a version higher than 2.0
         git --version
 
+Step 2: Make sure that you have added your username and email to the git global. (Gives you access to remote repositories and stuff)
+        git config --global user.name "FIRST_NAME LAST_NAME"
+        git config --global user.email "MY_NAME@example.com"
 
 Step 3: Make sure that git is enabled in VS code. 
         Go to settings (ctrl + ,), search for Git enabled and make sure it is ticked on.  
