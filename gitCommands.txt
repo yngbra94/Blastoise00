@@ -1,0 +1,25 @@
+This is a list of useful git hub commands. 
+
+%%  git config. Setting your user name and email in the main configuration file 
+        $ git config --global user.name "FIRST_NAME LAST_NAME"    
+        $ git config --global user.email "MY_NAME@example.com"
+
+        Check your current name. 
+        $ git config --global user.name
+
+%%  git branch. Lists branches. 
+        $ git branch or $ git branch -a to list the all remote branches. 
+
+%% git checkout. 
+    Moving between branches
+        $ git checkout <branch> 
+    
+    
+
+
+
+%%  git init. To initialize a git repository for a new or existing project. 
+    This is used to set up a git repository fir the first time. 
+    git init
+
+

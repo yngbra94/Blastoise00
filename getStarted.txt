@@ -9,6 +9,7 @@ Step 2: Make sure that you have added your username and email to the git global.
 
 Step 3: Make sure that git is enabled in VS code. 
         Go to settings (ctrl + ,), search for Git enabled and make sure it is ticked on.  
+        
 Step 4: clone the Blastoise00 to your computer. 
         1. Move to the folder you want it in in the terminal. (Ex:  cd ~/catkin_ws/src/my_package)
             git clone https://github.com/yngbra94/Blastoise00.git
@@ -34,7 +35,7 @@ Step 7: Test that the commit works:
         Type in your username and password 
 
 
-Step 8: Check that the change appears in the GitHub repository
+Step 8: Check that the change appears in the GitHub repository. 
 
 ProTip 1: 
         Download the GetLens Addon. It will make it easier to navigate the your git repository
