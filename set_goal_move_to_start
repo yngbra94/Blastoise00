@@ -1,0 +1,53 @@
+This script will change the goal to move back to start
+
+rostopic pub /move_base_simple/goal geometry_msgs/PoseStamped "header: 
+  seq: 0
+  stamp:
+    secs: 0
+    nsecs: 0
+  frame_id: 'map'
+pose:
+  position:
+    x: -0.01
+    y: -0.01
+    z: 0.0
+  orientation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0"
+
+
+Get first position header by subscribing to /move_base/feedback
+Seq #1 will be the first change of movement which will be where
+robot started.
+
+
+To see all new goals, subscribe to move_base/current_goal
+Can do this in terminal:
+rostopic echo /move_base/current_goal
+
+
+To see goal status, subscribe to /move_base/status
+Can do this in terminal:
+rostopic echo /move_base/status
+
+
+
+Can mark a specific point with script:
+
+rostopic pub /clicked_point geometry_msgs/PointStamped "header: 
+  seq: 0
+  stamp:
+    secs: 0
+    nsecs: 0
+  frame_id: 'map'
+point:
+  x: -0.01
+  y: -0.01
+  z: 0.0"
+
+
+explore.cpp contains the function that stops exploring when there are no frontiers left to explore.
+When finished exploring, it will cancel all current goals. This can be used to check if there
+are no goals left, if there aren't, then we are finished exploring.
