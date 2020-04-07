@@ -1,2 +1,18 @@
-Git testing
 
+Git testing
+Source: https://www.youtube.com/watch?v=Fk12ELJ9Bww
+
+Install and make reposetory. 
+Step 1: Install git
+Step 2: Create accoount on github. 
+Step 3. Create a reposietory on github
+
+After the reposetory is made: 
+Step 1: Go to git reposetory and copy .git URL.  
+Step 2: go to VS code and in to the project folder you want to use.
+Note: Make sure that Git is enabled in VS code. Setting -> git enable. 
+Step 3: Goto source control in the left menu and click on the git icon. 
+        It sould then sat SOURCE CONTROL: GIT: 
+Step 4: Commoit your changes. 
+Step 5: Add remote reposetory
+Step 6: Push to github reposetory. 
