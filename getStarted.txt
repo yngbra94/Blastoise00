@@ -36,3 +36,7 @@ Step 7: Test that the commit works:
 
 Step 8: Check that the change appears in the GitHub repository
 
+ProTip 1: 
+        Download the GetLens Addon. It will make it easier to navigate the your git repository
+
+
