@@ -1,0 +1,18 @@
+<launch>
+    <!-- Arguments -->
+
+    <arg name="auto_start" default="true"/>
+
+    <!-- SLAM -->
+
+    <include file="$(find turtlebot3_slam)/launch/turtlebot3_slam.launch" />
+
+    <!-- Navigation -->
+ <!--   <include file="$(find turtlebot3_navigation)/launch/move_base.launch" />
+    <include file="$(find turtlebot3_navigation)/launch/amcl.launch" />
+-->
+    <!-- Exploration -->
+    <include file="$(find explore_lite)/launch/explore.launch">
+        <arg name="auto_start" value="$(arg auto_start)" />
+    </include>
+</launch>
