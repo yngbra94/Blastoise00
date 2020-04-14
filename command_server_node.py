@@ -44,15 +44,17 @@ class command_server_node:
         state_msg = String()
         state_msg.data = self.state.value
         self.publisher_state.publish(state_msg)
-        
+
     # Function that detects when the robot is finished with exploring 
     def callback_goalstatus(self, data):
        # if data.status == 3:
-        index=str(data.status_list[0]).find("status: ")
-        print str(data.status_list[0])[index+8]
-        if str(data.status_list[0])[index+8]=='3':
-            print "3 com n"
-            self.state = RobotState.DONE
+        #index=str(data.status_list[0]).find("status: ")
+        i=1
+        #print "callback status"
+        #print str(data.status_list[0])[index+8]
+       # if str(data.status_list[0])[index+8]=='3':
+        #    print "3 com n"
+           # self.state = RobotState.DONE
 
             
     def callback_beacons(self,beaconsLeft):
@@ -72,7 +74,10 @@ class command_server_node:
             
 
     def callback_command(self, data):
+        print "heiheis"
         command = Commands(data.data)
+        print "heihei"
+        #print command
         if command is Commands.START and self.previusState != RobotState.RETURNING:
             self.state = RobotState.EXPLORING
         elif command is Commands.START and self.previusState == RobotState.RETURNING:
