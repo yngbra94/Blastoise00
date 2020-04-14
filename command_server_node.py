@@ -44,7 +44,8 @@ class command_server_node:
         state_msg = String()
         state_msg.data = self.state.value
         self.publisher_state.publish(state_msg)
-
+        
+    # Function that detects when the robot is finished with exploring 
     def callback_goalstatus(self, data):
        # if data.status == 3:
         index=str(data.status_list[0]).find("status: ")
