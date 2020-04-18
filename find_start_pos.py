@@ -18,22 +18,25 @@ class initpos_subscriber_node:
     # Subscribing to the /move_base/...
     def __init__(self):
         # Variables: 
+        self.poseExist = False
         self.initPose = "empty"
-        self.posCnt = 0
 
         # Suvscribing in the feedback data of the robot. 
         self.sub_pose = rospy.Subscriber('move_base/feedback', MoveBaseActionFeedback, self.pose_callback)
+        print(self.sub_pose)
         rospy.spin()
 
+    
     def pose_callback(self, data):
-        self.initPose = data.feedback.base_position.pose
-        if(self.initPose != "empty" and self.posCnt == 0):
-            print(self.initPose)
-            self.posCnt += 1
+    
+        # Store initial pose
+        if(self.poseExist == False):
+            self.initPose = data.feedback.base_position.pose
+            # print(self.initPose)
+            self.poseExist = True
+
 
         
-        
-
 
 
 if __name__ == '__main__': 
