@@ -4,7 +4,7 @@
     navigation_node.py
 
     This node is responsible for controlling the navigational aspect of the turtlebot 
-    The listens to the state/ and based on this performs the set task. 
+    this node listens to the state/ from the commandserver node and based on this performs the set task. 
     The tasks is: explore the maze with sending true to the /explore/explore_service, 
     return back to start point, and stop (pause) the robot. 
 
@@ -17,14 +17,16 @@
      > Pausing / stoping of the robot is not implemented for the go back home part. 
 
 
-
-    Subscribed:  state/, move_base/feedback, move_base/status, move_base_simple/goal 
-    Publishes:   returning_done/, exploring_finished/
+    NOTE!!: currently the code "getandchange_goal.py" listens to move_base/status goal status and text,
+    this should be changed to listen to marker array for frontiers as explained in message from Brendan
+    below.
+    
+    Subscribed:  state/, move_base/feedback, move_base/status  
+    Publishes:   returning_done/, exploring_finished/, move_base_simple/goal
     
     
-    
-    
-    Message from Brendan:
+    Message from Brendan: on which node should be subscribed to in order to know when
+    exploring is finished.
     ================================================================================================
     You should use the topics published by the explore server itself. All of the topics/services are
     under the "/explore/" namespace. The only topic published is an marker array called "frontiers",
