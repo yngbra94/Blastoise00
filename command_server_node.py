@@ -40,7 +40,7 @@ class command_server_node:
         self.subscriber_beacons = rospy.Subscriber('beacons_left/',Int16,self.callback_beacons)
         self.subscriber_finished_exploring = rospy.Subscriber('exploring_finished/',Bool, self.callback_finished_exploring)
         self.subscriber_returning = rospy.Subscriber('returning_done/',Bool, self.callback_returning)
-        self.subscriber_movebase_status =rospy.Subscriber('move_base/status',GoalStatusArray,self.callback_goalstatus)
+     
         # Publish the current state at 10Hz to make sure other nodes get the correct info
         r = rospy.Rate(10)
         while not rospy.is_shutdown():
@@ -53,13 +53,7 @@ class command_server_node:
         state_msg.data = self.state.value
         self.publisher_state.publish(state_msg)
 
-    # Function that detects when the robot is finished with exploring 
-    def callback_goalstatus(self, data):
-        statusText = data.status_list[0].text
-        if data.status_list[0].status == 2 and len(statusText):
-            self.state=RobotState.RETURNING
-            self.previusState=RobotState.RETURNING
-            print "robot is returning maze is finished explored"
+
 
     # listens to if the robot is finished with exploring the maze.
     #  if it is true then the robot returns back to start    
