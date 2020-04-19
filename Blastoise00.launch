@@ -1,16 +1,21 @@
 <launch>
     <!-- Arguments -->
 
-    <arg name="auto_start" default="true"/>
+    <arg name="auto_start" default="false"/>
+
+    <!-- Command Server & Navigation Node -->
+
+    rosrun my_package command_server_node.py
+
+    rosrun my_package navigation_node.py
 
     <!-- SLAM -->
-
     <include file="$(find turtlebot3_slam)/launch/turtlebot3_slam.launch" />
 
     <!-- Navigation -->
- <!--   <include file="$(find turtlebot3_navigation)/launch/move_base.launch" />
+    <include file="$(find turtlebot3_navigation)/launch/move_base.launch" />
     <include file="$(find turtlebot3_navigation)/launch/amcl.launch" />
--->
+
     <!-- Exploration -->
     <include file="$(find explore_lite)/launch/explore.launch">
         <arg name="auto_start" value="$(arg auto_start)" />
