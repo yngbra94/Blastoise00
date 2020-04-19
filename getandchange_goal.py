@@ -4,7 +4,6 @@
 
 """
 
-
 import rospy
 from actionlib_msgs.msg import GoalStatusArray, GoalStatus
 from move_base_msgs.msg import MoveBaseFeedback, MoveBaseActionFeedback

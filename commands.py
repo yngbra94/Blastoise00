@@ -18,9 +18,15 @@ class  Commands(Enum):
     START = 'start'
     STOP = 'stop'
 
+
+class RobotCommand(Enum):
+    EXPLORE = 'explore'
+    RETURN = 'return'
+    PAUSE = 'pause'
+
 class RobotState(Enum):
     WAITING_TO_START = 'waiting_to_start'
     PAUSED = 'pause'
-    EXPLORING = 'explore'
+    EXPLORING = 'exploring'
     RETURNING = 'returning'
     DONE = 'done'

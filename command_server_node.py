@@ -38,8 +38,12 @@ class command_server_node:
         self.subscriber_command = rospy.Subscriber('cmd/', String, self.callback_command)
         self.publisher_state = rospy.Publisher('state/', String, queue_size=1)
         self.subscriber_beacons = rospy.Subscriber('beacons_left/',Int16,self.callback_beacons)
-        self.subscriber_finished_exploring = rospy.Subscriber('exploring_finished/',Bool, self.callback_finished_exploring)
-        self.subscriber_returning = rospy.Subscriber('returning_done/',Bool, self.callback_returning)
+        self.subscriber_finished_exploring = rospy.Subscriber('exploring_finished',Bool, self.callback_finished_exploring)
+        self.subscriber_returning = rospy.Subscriber('returning_done',Bool, self.callback_returning)
+
+        #  self.subscriber_robot_state = rospy.Subscriber('robot_current_state', String, self.callback_robot_state) TO Be used later. 
+
+        
      
         # Publish the current state at 10Hz to make sure other nodes get the correct info
         r = rospy.Rate(10)
