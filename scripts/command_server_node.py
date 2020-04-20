@@ -83,7 +83,7 @@ class command_server_node:
             self.previusState = RobotState.DONE
             #printing that the robot is finished. Added many lines to make it easy to see
             rospy.loginfo("\n \n \n \n \n \n The robot has returned back to home.  \n \n \n \n \n \n")
-           
+            rospy.loginfo("\n \n \n \n \n \n The robot has returned back to home.  \n \n \n \n \n \n")
 
             
     # listens to if 'start' or 'stop' is recived.

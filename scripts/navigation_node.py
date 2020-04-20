@@ -87,8 +87,7 @@ class navigation_node:
 
 
     # Callback from the server node. 
-    # Saves current robot state and executes the command 
-    
+    # Saves current robot state and executes the command
     # @param state, Cuttent robot state , Type String
     def server_cmd(self, cmd): 
         # If the coomand is to explore, start exploring
