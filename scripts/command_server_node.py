@@ -33,15 +33,12 @@ from actionlib_msgs.msg import GoalStatusArray,  GoalStatus
 class command_server_node:
     def __init__(self):
         self.state = RobotState.EXPLORING
-        self.previusState= RobotState.WAITING_TO_START
+        self.previusState= self.state
         # list of all ros topic subscription and publications 
         self.subscriber_command = rospy.Subscriber('cmd/', String, self.callback_command)
         self.publisher_state = rospy.Publisher('state/', String, queue_size=1)
         self.subscriber_beacons = rospy.Subscriber('beacons_left/',Int16,self.callback_beacons)
-        self.subscriber_finished_exploring = rospy.Subscriber('exploring_finished',Bool, self.callback_finished_exploring)
-        self.subscriber_returning = rospy.Subscriber('returning_done',Bool, self.callback_returning)
-
-        #  self.subscriber_robot_state = rospy.Subscriber('robot_current_state', String, self.callback_robot_state) TO Be used later. 
+        self.subscriber_robot_state = rospy.Subscriber('robot_current_state', String, self.callback_robot_state) 
 
         # Publish the current state at 10Hz to make sure other nodes get the correct info
         r = rospy.Rate(10)
@@ -57,16 +54,23 @@ class command_server_node:
         self.publisher_state.publish(state_msg)
 
 
+    # listens to the robot current state 
+    # changes state to return home if the the exploring is finished. 
+    # if it was returning and it is finished it is stopped and prints reached home. 
+    def callback_robot_state(self, data):
+        if data.data == RobotState.DONE.value and self.state == RobotState.RETURNING:
+            self.state = RobotState.DONE
+            self.previusState = RobotState.DONE
+            #printing that the robot is finished. Added many lines to make it easy to see
+            rospy.loginfo("\n \n \n \n \n \n The robot has returned back to home.  \n \n \n \n \n \n")
+            rospy.loginfo("\n \n \n \n \n \n The robot has returned back to home.  \n \n \n \n \n \n")
 
-    # listens to if the robot is finished with exploring the maze.
-    #  if it is true then the robot returns back to start    
-    def callback_finished_exploring(self, data):
-        if data.data == True:
+        if data.data == RobotState.DONE.value and self.state == RobotState.EXPLORING:
             self.state = RobotState.RETURNING
             self.previusState=RobotState.RETURNING
             rospy.loginfo("Finished with exploring the maze")
 
-        
+
     #listens to beacons left and stops exploring when all beacons is found and returns to 
     # start position        
     def callback_beacons(self,beaconsLeft):
@@ -75,15 +79,7 @@ class command_server_node:
             self.previusState=RobotState.RETURNING
             rospy.loginfo("beacons = 0 robot is returning")
 
-    # listens to if the robot is returned back to the starting position. 
-    # Sets the state to done 
-    def callback_returning(self,data):
-        if data.data == True and self.state == RobotState.RETURNING: 
-            self.state = RobotState.DONE
-            self.previusState = RobotState.DONE
-            #printing that the robot is finished. Added many lines to make it easy to see
-            rospy.loginfo("\n \n \n \n \n \n The robot has returned back to home.  \n \n \n \n \n \n")
-            rospy.loginfo("\n \n \n \n \n \n The robot has returned back to home.  \n \n \n \n \n \n")
+ 
 
             
     # listens to if 'start' or 'stop' is recived.
@@ -93,7 +89,7 @@ class command_server_node:
         command = Commands(data.data)
      
         #start exploring the maze if not all beacons is found
-        if command is Commands.START and self.previusState != RobotState.RETURNING:
+        if command is Commands.START and self.previusState != RobotState.RETURNING and self.previusState != RobotState.DONE:
             self.state = RobotState.EXPLORING
         
         # start the robot and make it return if the maze is explored

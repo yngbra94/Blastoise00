@@ -58,7 +58,7 @@ class navigation_node:
         #
         # Publisher 
         # Publishes new goals to the robot. 
-        self.pubNewGoal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
+        self.pub_new_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
         self.pub_cancel_all_goals = rospy.Publisher('/move_base/cancel', GoalID, queue_size=10)
 
         # Publish the explire command 
@@ -67,17 +67,15 @@ class navigation_node:
         rospy.wait_for_service('/explore/explore_service')
         
         try:
-            #send start to the exploration class 
-            self.startFunction = rospy.ServiceProxy('/explore/explore_service',SetBool)
-            self.startFunction(False)
+            # make the service to the explore state. This tells it to start or stop exploring
+            self.pub_explore_state = rospy.ServiceProxy('/explore/explore_service',SetBool)
+            self.pub_explore_state(False) # tell explore node to stop the exploration 
         except rospy.ServiceException, e:
             print "Service call failed: %s" %e
 
 
         # Publish curret robot action
         self.pub_robotCurrentState = rospy.Publisher('robot_current_state/', String , queue_size=10)
-        self.pub_exploring_done = rospy.Publisher('exploring_finished/', Bool, queue_size=1) 
-        self.pub_returning_done = rospy.Publisher('returning_done/', Bool, queue_size=1) 
 
         if(self.debug):
             print("Init done")
@@ -90,7 +88,7 @@ class navigation_node:
     # Saves current robot state and executes the command
     # @param state, Cuttent robot state , Type String
     def server_cmd(self, cmd): 
-        # If the coomand is to explore, start exploring
+        # If the command is to explore, start exploring
         if (cmd.data == RobotState.EXPLORING.value):
             self.robot_explore()
         # If the command is to Pause the exploring, do so 
@@ -105,7 +103,7 @@ class navigation_node:
     def robot_explore(self):
         # try to start the exploring. If not, cast exception
         try:
-            self.startFunction(True)
+            self.pub_explore_state(True)
             # Change state to EXPLORING
             self.set_robot_action_and_pub(RobotState.EXPLORING)
             if(self.debug):
@@ -116,15 +114,15 @@ class navigation_node:
 
 
 
-    # Return robot to home pose
+    # Set the goal of the robot to the home position. 
     def robot_return_home(self):
-        # Publish the initial pose to return home
+        # check if there is no stored home pose
         if not self.initPose:
             print("No home pose found. \n  check bringup order. ")
-
+        # Publish the initial pose to return home
         else: 
             # print(self.initPose)
-            self.pubNewGoal.publish(self.initPose) # Send goal to return home (to first position that was stored)
+            self.pub_new_goal.publish(self.initPose) # Send goal to return home (the first position that was stored)
             # Set robot action to RETURNING_HOME and publish
             self.set_robot_action_and_pub(RobotState.RETURNING)
             if (self.debug):
@@ -132,14 +130,14 @@ class navigation_node:
 
 
     
-    # Pause the current opeartion of the robot. 
+    # Pause the current operation of the robot. 
     def robot_pause(self):
-        # try to stop the exploring. If not, cast exception
+        # try to stop the exploring. If not, print exeption
         try:
-            self.startFunction(False)
+            self.pub_explore_state(False)
         except rospy.ServiceException, e:
             print "Could not stop exploring. \n Service call failed: %s" %e
-        # Cancel all goals. 
+        # Cancel all current goals. stop the robot    
         self.pub_cancel_all_goals.publish()
         # Change state to PAUSED and publish
         self.set_robot_action_and_pub(RobotState.PAUSED)
@@ -149,8 +147,7 @@ class navigation_node:
 
 
     # Callback for the robot pose.
-    # Extract the pose robot feedback publication. 
-    #
+    # Extract the first pose from robot feedback node and store as home pose. 
     # @param data, Info from move_base feedback, Type MoveBaseActionFeedback. 
     def pose_callback(self, data):
 
@@ -165,15 +162,14 @@ class navigation_node:
             self.poseExist = True
     
     # Callback for the robot state
-    # 
+    # listens to move_base and check if the robot is returned home (Goal reached)
     def robot_status_callback(self, status):
 
         # If the robot is on it's way home and it has reached its goal, the robot is home
         if (self.robotCurrentState == RobotState.RETURNING and status.status_list[0].status == 3):
             # Set action to robot is home and publish 
             self.set_robot_action_and_pub(RobotState.DONE)
-            # Publish that to returning is compleated. 
-            self.pub_returning_done.publish(True)
+           
             # Used with debug
             if (self.debug):
                 print("Robot parked in the garage. ")
@@ -186,14 +182,13 @@ class navigation_node:
 
             # Used with debug
             if(self.debug):
-                print("No more frointiers.")
+                print("No more frontiers.")
             # Change the state state to DONE and publish
             self.set_robot_action_and_pub(RobotState.DONE)
-            # Publish that the exploring it done
-            self.pub_exploring_done.publish(True)
+         
 
     
-    # Sets robot current state and publishes it
+    # Set the current state of the robot and publishes it
     #
     # @param newState, the new state to be set. 
     def set_robot_action_and_pub(self, newState):
