@@ -1,0 +1,7 @@
+<launch>
+<arg name="auto_start" default="false"/>
+<node pkg="explore_lite" type="explore" respawn="false" name="explore" output="screen">
+<rosparam file="$(find Blastoise00)/param/explore_params.yaml" command="load"/>
+<param name="auto_start" value="$(arg auto_start)"/>
+</node>
+</launch>

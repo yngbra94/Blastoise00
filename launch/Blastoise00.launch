@@ -12,7 +12,7 @@
     <include file="$(find turtlebot3_navigation)/launch/amcl.launch" />
 
     <!-- Exploration -->
-    <include file="$(find explore_lite)/launch/explore.launch">
+    <include file="$(find Blastoise00)/launch/explore.launch">
         <arg name="auto_start" value="$(arg auto_start)" />
     </include>
 
