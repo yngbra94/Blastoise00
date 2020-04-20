@@ -43,8 +43,6 @@ class command_server_node:
 
         #  self.subscriber_robot_state = rospy.Subscriber('robot_current_state', String, self.callback_robot_state) TO Be used later. 
 
-        
-     
         # Publish the current state at 10Hz to make sure other nodes get the correct info
         r = rospy.Rate(10)
         while not rospy.is_shutdown():
@@ -53,6 +51,7 @@ class command_server_node:
 
     # Run at 10Hz
     def loop(self):
+
         state_msg = String()
         state_msg.data = self.state.value
         self.publisher_state.publish(state_msg)
@@ -65,7 +64,7 @@ class command_server_node:
         if data.data == True:
             self.state = RobotState.RETURNING
             self.previusState=RobotState.RETURNING
-            print "Finished with exploring the maze"
+            rospy.loginfo("Finished with exploring the maze")
 
         
     #listens to beacons left and stops exploring when all beacons is found and returns to 
@@ -74,7 +73,7 @@ class command_server_node:
         if beaconsLeft.data == 0 and self.state == RobotState.EXPLORING:
             self.state = RobotState.RETURNING
             self.previusState=RobotState.RETURNING
-            print "beacons = 0 robot is returning"
+            rospy.loginfo("beacons = 0 robot is returning")
 
     # listens to if the robot is returned back to the starting position. 
     # Sets the state to done 
@@ -82,42 +81,28 @@ class command_server_node:
         if data.data == True and self.state == RobotState.RETURNING: 
             self.state = RobotState.DONE
             self.previusState = RobotState.DONE
-            print "==================================== \n \n \n Woho I'm home \n \n \n ===================================="
-
+            #printing that the robot is finished. Added many lines to make it easy to see
+            rospy.loginfo("\n \n \n \n \n \n The robot has returned back to home.  \n \n \n \n \n \n")
+           
 
             
-    #listens to if 'start' or 'stop' is recived.  
+    # listens to if 'start' or 'stop' is recived.
+    # starts exploring if the maze is not explored. 
+    # starts returning if the maze is explored.   
     def callback_command(self, data):
         command = Commands(data.data)
      
         #start exploring the maze if not all beacons is found
         if command is Commands.START and self.previusState != RobotState.RETURNING:
             self.state = RobotState.EXPLORING
-            """ will be transfered to navigational node 
-            print "start exploring "
-            #wait to see if there is a service for exploration
-            rospy.wait_for_service('/explore/explore_service')
-            try:
-                #send start to the exploration class 
-                startFunction = rospy.ServiceProxy('/explore/explore_service',SetBool)
-                startFunction(True)
-            except rospy.ServiceException, e:
-                print "Service call failed: %s" %e
-            """
+        
         # start the robot and make it return if the maze is explored
         elif command is Commands.START and self.previusState == RobotState.RETURNING:
             self.state = RobotState.RETURNING
         #stop the robot     
         elif command is Commands.STOP:
             self.state = RobotState.PAUSED
-        """ move to navigational node 
-            rospy.wait_for_service('/explore/explore_service')
-            try:
-                startFunction = rospy.ServiceProxy('/explore/explore_service',SetBool)
-                startFunction(False)
-            except rospy.ServiceException, e:
-                print "Service call failed: %s" %e
-        """
+   
 
 if __name__ == '__main__':
     print "Starting ROS Command Server module"
