@@ -82,7 +82,7 @@ class command_server_node:
         if data.data == True and self.state == RobotState.RETURNING: 
             self.state = RobotState.DONE
             self.previusState = RobotState.DONE
-            print "robot is returned"
+            print "==================================== \n \n \n Woho I'm home \n \n \n ===================================="
 
 
             

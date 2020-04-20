@@ -64,7 +64,7 @@ class navigation_node:
     # Subscribing to the /move_base/...
     def __init__(self):
         # Variables: 
-        self.debug = True 
+        self.debug = False 
         self.poseExist = False
         self.initPose = "empty"
         self.robotCurrentState = RobotState.WAITING_TO_START # Initial starting state
@@ -90,8 +90,10 @@ class navigation_node:
         self.pub_cancel_all_goals = rospy.Publisher('/move_base/cancel', GoalID, queue_size=10)
 
         # Publish the explire command 
-        print("Waiting for /explore/explore_service... ")
+        if(self.debug):
+            print("Waiting for /explore/explore_service... ")
         rospy.wait_for_service('/explore/explore_service')
+        
         try:
             #send start to the exploration class 
             self.startFunction = rospy.ServiceProxy('/explore/explore_service',SetBool)
