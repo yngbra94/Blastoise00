@@ -64,7 +64,7 @@ class navigation_node:
     # Subscribing to the /move_base/...
     def __init__(self):
         # Variables: 
-        self.debug = False 
+        self.debug = True 
         self.poseExist = False
         self.initPose = "empty"
         self.robotCurrentState = RobotState.WAITING_TO_START # Initial starting state
