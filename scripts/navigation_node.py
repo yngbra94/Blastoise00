@@ -202,7 +202,7 @@ class navigation_node:
     # @param newAction, the new action to be set. 
     def set_robot_action_and_pub(self, newState):
         self.robotCurrentState = newState
-        self.pub_robotCurrentState.publish(self.robotCurrentState.name)
+        self.pub_robotCurrentState.publish(self.robotCurrentState.value)
 
 
 
@@ -210,7 +210,7 @@ class navigation_node:
 if __name__ == '__main__': 
     try:
         rospy.init_node('navigation_node')
-        sn = initpos_subscriber_node()
+        sn = navigation_node()
         print("Navigation Node Started... ")
     except rospy.ROSInternalException:
        pass

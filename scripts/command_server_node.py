@@ -32,7 +32,7 @@ from actionlib_msgs.msg import GoalStatusArray,  GoalStatus
 
 class command_server_node:
     def __init__(self):
-        self.state = RobotState.WAITING_TO_START
+        self.state = RobotState.EXPLORING
         self.previusState= RobotState.WAITING_TO_START
         # list of all ros topic subscription and publications 
         self.subscriber_command = rospy.Subscriber('cmd/', String, self.callback_command)

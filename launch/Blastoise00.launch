@@ -17,9 +17,11 @@
     </include>
 
     <!-- Command Server & Navigation Node -->
-    <node pkg="my_package" type="command_server_node.py" name="command_server_node" output="screen">
+    <node pkg="Blastoise00" type="command_server_node.py" name="command_server_node" output="screen">
     </node>
-    <node pkg="my_package" type="navigation_node.py" name="navigation_node" output="screen">
+    <node pkg="Blastoise00" type="navigation_node.py" name="navigation_node" output="screen">
     </node>
 
+    
+    
 </launch>
