@@ -3,11 +3,6 @@
 
     <arg name="auto_start" default="false"/>
 
-    <!-- Command Server & Navigation Node -->
-
-    rosrun my_package command_server_node.py
-
-    rosrun my_package navigation_node.py
 
     <!-- SLAM -->
     <include file="$(find turtlebot3_slam)/launch/turtlebot3_slam.launch" />
@@ -20,4 +15,11 @@
     <include file="$(find explore_lite)/launch/explore.launch">
         <arg name="auto_start" value="$(arg auto_start)" />
     </include>
+
+    <!-- Command Server & Navigation Node -->
+    <node pkg="my_package" type="command_server_node.py" name="command_server_node" output="screen">
+    </node>
+    <node pkg="my_package" type="navigation_node.py" name="navigation_node" output="screen">
+    </node>
+
 </launch>
