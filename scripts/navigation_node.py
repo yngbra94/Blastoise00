@@ -36,12 +36,14 @@ class navigation_node:
     # Subscribing to the /move_base/...
     def __init__(self):
         # Variables: 
-        self.debug = False 
+        self.debug = True 
         self.poseExist = False
-        self.initPose = "empty"
+        # make a pose in pos;[0 0 0] orientation; [0 0 0 1]
+        self.initPose = PoseStamped()
+        self.initPose.pose.orientation.w = 1.0 # 
+        self.currentPose = PoseStamped()
         self.robotCurrentState = RobotState.WAITING_TO_START # Initial starting state
 
-        # Sudscribing  
         # Sub to command server status 
         self.sub_server_cmd = rospy.Subscriber('state', String, self.server_cmd)
 
@@ -121,18 +123,18 @@ class navigation_node:
             print("No home pose found. \n  check bringup order. ")
         # Publish the initial pose to return home
         else: 
-            # print(self.initPose)
+            self.initPose.header = self.currentPose.header
             self.pub_new_goal.publish(self.initPose) # Send goal to return home (the first position that was stored)
             # Set robot action to RETURNING_HOME and publish
             self.set_robot_action_and_pub(RobotState.RETURNING)
             if (self.debug):
-                print("Returning home... ")
+                print("Returning to home from pose: {0} \n To home pose: {1} ".format(self.currentPose, self.initPose))
 
 
     
     # Pause the current operation of the robot. 
     def robot_pause(self):
-        # try to stop the exploring. If not, print exeption
+        # try to stop the exploring. If not, print exception
         try:
             self.pub_explore_state(False)
         except rospy.ServiceException, e:
@@ -147,19 +149,13 @@ class navigation_node:
 
 
     # Callback for the robot pose.
-    # Extract the first pose from robot feedback node and store as home pose. 
+    # Updating the current position  
     # @param data, Info from move_base feedback, Type MoveBaseActionFeedback. 
     def pose_callback(self, data):
 
-        # Store initial pose
-        if(self.poseExist == False):
-            # Set init pose
-            self.initPose = data.feedback.base_position
-            # Used with debug
-            if(self.debug):
-                print("Init pose saved as:  %s "% (self.initPose.pose))
-            # Pose exist flag
-            self.poseExist = True
+        # Update current pose
+        self.currentPose = data.feedback.base_position
+        
     
     # Callback for the robot state
     # listens to move_base and check if the robot is returned home (Goal reached)
@@ -178,7 +174,7 @@ class navigation_node:
     # 
     # @param frontiers, The subscribed frointer data from the robot, Type MarkerArray
     def frontiers_callback(self, frontiers):
-        if(frontiers.markers == []):
+        if(frontiers.markers == [] and self.robotCurrentState == RobotState.EXPLORING):
 
             # Used with debug
             if(self.debug):
