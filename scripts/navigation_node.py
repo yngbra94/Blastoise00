@@ -36,7 +36,7 @@ class navigation_node:
     # Subscribing to the /move_base/...
     def __init__(self):
         # Variables: 
-        self.debug = True 
+        self.debug = False 
         self.poseExist = False
         # make a pose in pos;[0 0 0] orientation; [0 0 0 1]
         self.initPose = PoseStamped()
