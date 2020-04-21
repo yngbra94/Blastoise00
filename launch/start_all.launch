@@ -5,11 +5,11 @@
 
 
     <!-- SLAM -->
-    <include file="$(find turtlebot3_slam)/launch/turtlebot3_slam.launch" />
+    <include file="$(find Blastoise00)/launch/slam/turtlebot3_slam.launch" />
 
     <!-- Navigation -->
-    <include file="$(find turtlebot3_navigation)/launch/move_base.launch" />
-    <include file="$(find turtlebot3_navigation)/launch/amcl.launch" />
+    <include file="$(find Blastoise00)/launch/move_base.launch" />
+    <include file="$(find Blastoise00)/launch/amcl.launch" />
 
     <!-- Exploration -->
     <include file="$(find Blastoise00)/launch/explore.launch">
