@@ -19,6 +19,6 @@
   <!-- rviz -->
   <group if="$(arg open_rviz)"> 
     <node pkg="rviz" type="rviz" name="rviz" required="true"
-          args="-d $(find turtlebot3_slam)/rviz/turtlebot3_$(arg slam_methods).rviz"/>
+          args="-d $(find Blastoise00)/param/rviz/turtlebot3_$(arg slam_methods).rviz"/>
   </group>
 </launch>

@@ -26,6 +26,7 @@ from visualization_msgs.msg import MarkerArray
 from geometry_msgs.msg import PoseStamped
 from std_srvs.srv import SetBool 
 from actionlib_msgs.msg import GoalID
+from nav_msgs.msg import OccupancyGrid
 
 
 # Robot Commands
@@ -56,25 +57,16 @@ class navigation_node:
         # Sub to /explore/frontiers from the robot. 
         self.sub_frontiers = rospy.Subscriber('explore/frontiers', MarkerArray, self.frontiers_callback)
 
+        # Sub to /map
+        self.sub_map = rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
+
 
         #
         # Publisher 
         # Publishes new goals to the robot. 
         self.pub_new_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
         self.pub_cancel_all_goals = rospy.Publisher('/move_base/cancel', GoalID, queue_size=10)
-
-        # Publish the explire command 
-        if(self.debug):
-            print("Waiting for /explore/explore_service... ")
-        rospy.wait_for_service('/explore/explore_service')
-        
-        try:
-            # make the service to the explore state. This tells it to start or stop exploring
-            self.pub_explore_state = rospy.ServiceProxy('/explore/explore_service',SetBool)
-            self.pub_explore_state(False) # tell explore node to stop the exploration 
-        except rospy.ServiceException, e:
-            print "Service call failed: %s" %e
-
+        self.pub_map = rospy.Publisher('ecte477/map', OccupancyGrid, queue_size=10)
 
         # Publish curret robot action
         self.pub_robotCurrentState = rospy.Publisher('robot_current_state/', String , queue_size=10)
@@ -85,6 +77,9 @@ class navigation_node:
         # DJ, Spin that ROS 
         rospy.spin()
 
+    # Callback for publishing new map
+    def map_callback(self, map):
+        self.pub_map.publish(map)
 
     # Callback from the server node. 
     # Saves current robot state and executes the command
@@ -101,20 +96,30 @@ class navigation_node:
         if (cmd.data == RobotState.RETURNING.value):
             self.robot_return_home()
 
+    # Set state of explore service to either true or false
+    def set_explore_state(self, state):
+        if(self.debug):
+            print("Waiting for /explore/explore_service... ")
+
+        # Wait for service
+        rospy.wait_for_service('/explore/explore_service')
+        try:
+            # Create a service for the explore service to toggle state
+            pub_explore_state = rospy.ServiceProxy('/explore/explore_service',SetBool)
+            pub_explore_state(state) # tell explore node to stop the exploration 
+        except rospy.ServiceException, e:
+            print "Service call failed: %s" %e
+
+
     # Make robot start exploring 
     def robot_explore(self):
-        # try to start the exploring. If not, cast exception
-        try:
-            self.pub_explore_state(True)
-            # Change state to EXPLORING
-            self.set_robot_action_and_pub(RobotState.EXPLORING)
-            if(self.debug):
-                print("Exploring...")
+        # Tell explore service to start exploring
+        self.set_explore_state(True)
 
-        except rospy.ServiceException, e:
-            print "Could not starte exploring. \n Service call failed: %s" %e
-
-
+        # Change state to EXPLORING
+        self.set_robot_action_and_pub(RobotState.EXPLORING)
+        if(self.debug):
+            print("Exploring...")
 
     # Set the goal of the robot to the home position. 
     def robot_return_home(self):
@@ -134,11 +139,8 @@ class navigation_node:
     
     # Pause the current operation of the robot. 
     def robot_pause(self):
-        # try to stop the exploring. If not, print exception
-        try:
-            self.pub_explore_state(False)
-        except rospy.ServiceException, e:
-            print "Could not stop exploring. \n Service call failed: %s" %e
+        # Tell explore service to stop exploring
+        self.set_explore_state(False)
         # Cancel all current goals. stop the robot    
         self.pub_cancel_all_goals.publish()
         # Change state to PAUSED and publish
