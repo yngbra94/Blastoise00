@@ -1,0 +1,16 @@
+<!-- Launch the bug1.py node-->
+<launch >
+    <arg name="open_rviz" default="true"/>
+    
+    <!-- slam -->
+    <include file="$(find turtlebot3_slam)/launch/turtlebot3_slam.launch">
+        <arg name="open_rviz" value="$(arg open_rviz)"/>
+    </include>
+
+    <!-- other nodes-->
+    <include file="$(find movement_starter)/launch/wall_follower.launch" />
+    <include file="$(find movement_starter)/launch/go_to_point.launch" />
+    
+    <node pkg="movement_starter" type="bug2.py" name="bug2_node" output="screen">
+    </node>
+</launch>
