@@ -26,7 +26,8 @@ from visualization_msgs.msg import MarkerArray
 from geometry_msgs.msg import PoseStamped
 from std_srvs.srv import SetBool 
 from actionlib_msgs.msg import GoalID
-from nav_msgs.msg import OccupancyGrid
+from nav_msgs.msg import OccupancyGrid, Odometry, Path
+
 
 
 # Robot Commands
@@ -59,6 +60,11 @@ class navigation_node:
 
         # Sub to /map
         self.sub_map = rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
+
+        # Sub to odom for path messages -> publish to ecte_477/path
+        self.subscriber_odometry = rospy.Subscriber('odom/', Odometry, self.callback_get_path)  # Added callback for 'path'
+        self.publisher_path = rospy.Publisher('/ecte_477/path', Path, latch=True, queue_size=10) # Publisher for path msgs
+        self.path = Path()  # -> callback_path
 
 
         #
@@ -192,6 +198,15 @@ class navigation_node:
     def set_robot_action_and_pub(self, newState):
         self.robotCurrentState = newState
         self.pub_robotCurrentState.publish(self.robotCurrentState.value)
+
+
+    def callback_get_path(self, odom):   # Accumulates nav_msgs/Odometry messages, publishes on nav_msgs/Path
+        pose = PoseStamped()
+        pose.header = odom.header
+        pose.pose = odom.pose.pose
+        self.path.header = odom.header
+        self.path.poses.append(pose)
+        self.publisher_path.publish(self.path)
 
 
 
