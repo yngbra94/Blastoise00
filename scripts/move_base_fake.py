@@ -3,6 +3,7 @@
     move_base_fake.py
     Created: 2020/05/3
     Author: Brendan Halloran
+    Edited: Group 1 ecte477 2020  
 """
 
 import rospy
@@ -12,6 +13,11 @@ from std_srvs.srv import SetBool, SetBoolResponse
 from movement_starter.srv import SetPoint, SetPointResponse
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
+from enum import Enum
+class bugType(Enum):
+    BUG0 = '/bug0'
+    BUG1 = '/bug1'
+    BUG2 = '/bug2'
 
 class move_base_fake_node:
     def __init__(self):
@@ -23,19 +29,42 @@ class move_base_fake_node:
         self.current_goal_started = False       # Has the goal been started (i.e. have we told our Bug algorithm to use this point and start)
         self.current_goal_complete = False      # Has the Bug algorithm told us it completed 
         self.position = None                    # move_base feedback reports the current direction
-
+        self.bugType = bugType.BUG2             # set the bug type to be used 
         ## TO DO!!
         # Need a service provided by this node or something for the Bug algorithm to tell us it is done
-        # Bug service to start and stop Bug algorithm
-        # Bug service to set a new goal in Bug algorithm
-        # rospy.wait_for_service()
-        # rospy.wait_for_service()
+   
+      
+
         
         self.subscriber_odometry = rospy.Subscriber('odom/', Odometry, self.callback_odometry)                              # We need to read the robots current point for the feedback
         self.subscriber_simple_goal = rospy.Subscriber('/move_base_simple/goal/', PoseStamped, self.callback_simple_goal)   # Our return goal is done with /move_base_simple/goal/
         self.goal_pub = rospy.Publisher('/move_base/goal/', MoveBaseActionGoal, queue_size=10)                              # /move_base_simple/goal/ gets published here
         
         self.action_server.start()
+
+    # publish the state to the bug node, either start or stop. 
+    def pub_state_to_bug(self,state,bugType):
+        bugString =bugType +'/start_stop'
+        rospy.wait_for_service(bugString)
+        try:
+            # Create a service for the bug service to toggle state
+            pub_bug_state = rospy.ServiceProxy(bugString,SetBool)
+            pub_bug_state(state) # tell bug node to change the exploration 
+        except rospy.ServiceException, e:
+            print "Service call failed: %s" %e
+
+    # publish the goal for the bug algorithm
+    def pub_goal_to_bug(self,newGoal,bugType):
+        # /bug0 or /bug1 or /bug2
+        bugString =bugType +'/set_point'
+        rospy.wait_for_service(bugString)
+        try:
+            # Create a service for the bug service to toggle state
+            pub_bug_goal = rospy.ServiceProxy(bugString,SetPoint)
+            pub_bug_goal(newGoal) # tell bug node to change the exploration 
+        except rospy.ServiceException, e:
+            print "Service call failed: %s" %e
+
 
     def execute_callback(self, move_base_goal):
         self.goal = move_base_goal.target_pose.pose                                                 # Set the provided goal as the current goal
@@ -70,10 +99,10 @@ class move_base_fake_node:
             # Start goal
             if self.valid_goal and not self.current_goal_started:
                 rospy.logdebug('[Move Base Fake] Starting Goal')
-                
-                ## TO DO !!
-                # Call the Bug services/topics etc to tell Bug algorithm new target point and then to start
-
+                #set the goal 
+                self.pub_goal_to_bug(self.goal,self.bugType)
+                #start to go to the goal 
+                self.pub_state_to_bug(True, self.bugType)
                 self.current_goal_started = True        # Only start once
 
             # Feedback ever loop just reports current location
@@ -84,10 +113,8 @@ class move_base_fake_node:
             # Completed is set in a callback that you need to link to a service or subscriber
             if self.current_goal_complete:
                 rospy.logdebug('[Move Base Fake] Finishing Goal')
-                
-                ## TO DO!!
-                # Tell Bug algorithm to stop before changing or stopping goal
-
+                #stop the bug algorithm
+                self.pub_state_to_bug(False, self.bugType)
                 self.goal = None                        # Stop everything
                 self.valid_goal = False
                 self.current_goal_started = False
@@ -100,9 +127,8 @@ class move_base_fake_node:
         # Shutdown
         rospy.logdebug('[Move Base Fake] Shutting Down')
         
-        ## TO DO!!
-        # Tell Bug algorithm to stop before changing or stopping goal
-
+    
+        self.pub_state_to_bug(False, self.bugType)
         self.goal = None                        # Stop everything
         self.valid_goal = False
         self.current_goal_started = False
