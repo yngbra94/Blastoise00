@@ -11,7 +11,7 @@ from actionlib import SimpleActionServer
 from move_base_msgs.msg import MoveBaseAction, MoveBaseFeedback, MoveBaseResult, MoveBaseActionGoal
 from std_srvs.srv import SetBool, SetBoolResponse
 from movement_starter.srv import SetPoint, SetPointResponse
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Point, Pose
 from nav_msgs.msg import Odometry
 from enum import Enum
 class bugType(Enum):
@@ -42,26 +42,30 @@ class move_base_fake_node:
 
     # publish the state to the bug node, either start or stop. 
     def pub_state_to_bug(self,state,bugType):
-        bug_service =bugType.value +'/start_stop'
-        print state + "sending bug state "
+        bug_service =bugType.value +'_node/start_stop'
+        print "sending bug state "
         rospy.wait_for_service(bug_service)
         try:
             # Create a service for the bug service to toggle state
             pub_bug_state = rospy.ServiceProxy(bug_service,SetBool)
             pub_bug_state(state) # tell bug node to change the exploration 
-            print state + "sent bug state "
+            print  "sent bug state "
         except rospy.ServiceException, e:
             print "Service call failed: %s" %e
 
     # publish the goal for the bug algorithm
     def pub_goal_to_bug(self,newGoal,bugType):
         # /bug0 or /bug1 or /bug2
-        bug_service =bugType.value +'/set_point'
+        goalPoint = newGoal.position
+        #goalPoint.x =newGoal.x
+       # goalPoint.y =newGoal.y
+        #goalPoint.z =newGoal.z
+        bug_service =bugType.value +'_node/set_point'
         rospy.wait_for_service(bug_service)
         try:
             # Create a service for the bug service to toggle state
             pub_bug_goal = rospy.ServiceProxy(bug_service,SetPoint)
-            pub_bug_goal(newGoal) # tell bug node to change the exploration 
+            pub_bug_goal(goalPoint) # tell bug node to change the exploration 
             print  "sent bug state "
         except rospy.ServiceException, e:
             print "Service call failed: %s" %e
