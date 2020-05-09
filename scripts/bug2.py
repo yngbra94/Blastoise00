@@ -164,7 +164,7 @@ class bug2_node:
             self.state = state
             resp = self.start_go_to_point(False)
             resp = self.start_wall_follower(False)
-            rospy.loginfo("Done")
+            self.pub_done_move_base_fake(True) # Tell move_base_fake that bug is done
 
     #### Callbacks. 
 
@@ -256,6 +256,19 @@ class bug2_node:
         'fleft':   min(min(scan.ranges [18:53]) , 3.5),
         'left':    min(min(scan.ranges [54:90]) , 3.5),
         } 
+
+    ### Publishes 
+    # Tell move_base_fake that bug is done 
+    def pub_done_move_base_fake(self,is_done):
+        move_base_fake_service = '/move_base_fake/is_bug_done/'
+        rospy.wait_for_service(move_base_fake_service)
+        try:
+            # Create a service to tell move_base_fake that bug is done
+            pub_bug_is_done = rospy.ServiceProxy(move_base_fake_service,SetBool)
+            pub_bug_is_done(is_done)
+        except rospy.ServiceException, e:
+            print "Service call failed: %s" %e
+
 
     ### Help functions. 
 
