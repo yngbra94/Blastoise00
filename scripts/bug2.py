@@ -56,6 +56,8 @@ class bug2_node:
         while not rospy.is_shutdown():
             self.loop()
             r.sleep()
+
+            
         # calculate the distance to the line 
     def distance_to_line(self, start_point, end_point, current_point):
         

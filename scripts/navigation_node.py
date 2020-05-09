@@ -132,10 +132,12 @@ class navigation_node:
             print("No home pose found. \n  check bringup order. ")
         # Publish the initial pose to return home
         else: 
-            self.initPose.header = self.currentPose.header
-            self.pub_new_goal.publish(self.initPose) # Send goal to return home (the first position that was stored)
-            # Set robot action to RETURNING_HOME and publish
-            self.set_robot_action_and_pub(RobotState.RETURNING)
+            
+            if self.robotCurrentState != RobotState.RETURNING:
+                self.initPose.header = self.currentPose.header
+                self.pub_new_goal.publish(self.initPose) # Send goal to return home (the first position that was stored)
+                # Set robot action to RETURNING_HOME and publish
+                self.set_robot_action_and_pub(RobotState.RETURNING)
             if (self.debug):
                 print("Returning to home from pose: {0} \n To home pose: {1} ".format(self.currentPose, self.initPose))
 

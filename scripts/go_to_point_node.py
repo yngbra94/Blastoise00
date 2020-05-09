@@ -49,6 +49,16 @@ class go_to_point_node:
         while not rospy.is_shutdown():
             self.loop()
             r.sleep()
+        self.stopped = True
+        vel_msg = Twist()
+        vel_msg.linear.x = 0
+        vel_msg.linear.y = 0
+        vel_msg.linear.z = 0
+        vel_msg.angular.x = 0
+        vel_msg.angular.y = 0
+        vel_msg.angular.z = 0
+        self.publisher_twist.publish(vel_msg)
+        rospy.logdebug('[Go To Point] Stopped')
 
     
     def loop(self):
