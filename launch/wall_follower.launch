@@ -1,0 +1,5 @@
+<!-- Launch the wall_follower_node.py node -->
+<launch >
+    <node pkg="Blastoise00" type="wall_follower_node.py" name="wall_follower_node" output="screen">
+    </node>
+</launch>

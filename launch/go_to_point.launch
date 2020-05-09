@@ -1,0 +1,5 @@
+<!-- Launch the go_to_point.py node -->
+<launch >
+    <node pkg="Blastoise00" type="go_to_point_node.py" name="go_to_point_node" output="screen">
+    </node>
+</launch>

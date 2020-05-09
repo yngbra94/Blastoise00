@@ -5,8 +5,11 @@
   <arg name="odom_topic" default="odom" />
   <arg name="move_forward_only" default="false"/>
 
+  <!-- launch bug nodes -->
+  <include file="$(find Blastoise00)/launch/bug.launch" />
+
   <!-- move_base -->
-  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+  <node pkg="Blastoise00" type="move_base_fake.py" respawn="false" name="move_base_fake_node" output="screen">
     <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
     <rosparam file="$(find Blastoise00)/param/move_base/costmap_common_params_$(arg model).yaml" command="load" ns="global_costmap" />
     <rosparam file="$(find Blastoise00)/param/move_base/costmap_common_params_$(arg model).yaml" command="load" ns="local_costmap" />
@@ -18,4 +21,5 @@
     <remap from="odom" to="$(arg odom_topic)"/>
     <param name="DWAPlannerROS/min_vel_x" value="0.0" if="$(arg move_forward_only)" />
   </node>
+
 </launch>
