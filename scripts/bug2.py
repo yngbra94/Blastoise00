@@ -6,7 +6,7 @@ import rospy
 import tf
 import math
 
-from Bug2State import Bug2State
+from enum import Enum
 from geometry_msgs.msg import Point
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry, Path
@@ -311,3 +311,8 @@ if __name__ == '__main__':
         print "Shutting down ROS Bug1 module"
 
 
+
+class Bug2State(Enum):
+    GO_TO_POINT = 1
+    WALL_FOLLOW = 2
+    DONE = 3
