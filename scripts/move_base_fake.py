@@ -30,12 +30,10 @@ class move_base_fake_node:
         self.current_goal_complete = False      # Has the Bug algorithm told us it completed 
         self.position = None                    # move_base feedback reports the current direction
         self.bugType = bugType.BUG2             # set the bug type to be used 
-        ## TO DO!!
-        # Need a service provided by this node or something for the Bug algorithm to tell us it is done
-   
-      
 
-        
+        # Service for the Bug algorithm to tell us it is done
+        self.bug_done_service = rospy.Service('/move_base_fake/is_bug_done/', bool, self.callback_complete)
+
         self.subscriber_odometry = rospy.Subscriber('odom/', Odometry, self.callback_odometry)                              # We need to read the robots current point for the feedback
         self.subscriber_simple_goal = rospy.Subscriber('/move_base_simple/goal/', PoseStamped, self.callback_simple_goal)   # Our return goal is done with /move_base_simple/goal/
         self.goal_pub = rospy.Publisher('/move_base/goal/', MoveBaseActionGoal, queue_size=10)                              # /move_base_simple/goal/ gets published here
@@ -44,11 +42,11 @@ class move_base_fake_node:
 
     # publish the state to the bug node, either start or stop. 
     def pub_state_to_bug(self,state,bugType):
-        bugString =bugType +'/start_stop'
-        rospy.wait_for_service(bugString)
+        bug_service =bugType.value +'/start_stop'
+        rospy.wait_for_service(bug_service)
         try:
             # Create a service for the bug service to toggle state
-            pub_bug_state = rospy.ServiceProxy(bugString,SetBool)
+            pub_bug_state = rospy.ServiceProxy(bug_service,SetBool)
             pub_bug_state(state) # tell bug node to change the exploration 
         except rospy.ServiceException, e:
             print "Service call failed: %s" %e
@@ -56,11 +54,11 @@ class move_base_fake_node:
     # publish the goal for the bug algorithm
     def pub_goal_to_bug(self,newGoal,bugType):
         # /bug0 or /bug1 or /bug2
-        bugString =bugType +'/set_point'
-        rospy.wait_for_service(bugString)
+        bug_service =bugType.value +'/set_point'
+        rospy.wait_for_service(bug_service)
         try:
             # Create a service for the bug service to toggle state
-            pub_bug_goal = rospy.ServiceProxy(bugString,SetPoint)
+            pub_bug_goal = rospy.ServiceProxy(bug_service,SetPoint)
             pub_bug_goal(newGoal) # tell bug node to change the exploration 
         except rospy.ServiceException, e:
             print "Service call failed: %s" %e
@@ -78,8 +76,8 @@ class move_base_fake_node:
             # Always start by checking if there is a new goal that preempts the current one
             if self.action_server.is_preempt_requested():
 
-                ## TO DO!!
                 # Tell Bug algorithm to stop before changing or stopping goal
+                self.pub_state_to_bug(False, self.bugType)  # Stop bug algorithm
 
                 if self.action_server.is_new_goal_available():
                     new_goal = self.action_server.accept_new_goal()                                     # There is a new goal
@@ -134,10 +132,8 @@ class move_base_fake_node:
         self.current_goal_started = False
         self.current_goal_complete = False
 
-    # you need to connect this to something being called/published from the Bug algorithm
+    # Callback for when Bug is done with the current goal.
     def callback_complete(self, success):
-        # TO DO!!
-        # Implement some kind of service or subscriber so the Bug algorithm can tell this node it is complete
         self.current_goal_complete = success.data
 
     def callback_odometry(self, odom):

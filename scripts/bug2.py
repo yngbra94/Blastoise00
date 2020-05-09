@@ -125,6 +125,18 @@ class bug2_node:
             self.state = state
             resp = self.start_go_to_point(False)
             resp = self.start_wall_follower(False) 
+            self.pub_done_move_base_fake(True) # Tell move_base_fake that bug is done
+
+    # Tell move_base_fake that bug is done 
+    def pub_done_move_base_fake(self,is_done):
+        move_base_fake_service = '/move_base_fake/is_bug_done/'
+        rospy.wait_for_service(move_base_fake_service)
+        try:
+            # Create a service to tell move_base_fake that bug is done
+            pub_bug_is_done = rospy.ServiceProxy(move_base_fake_service,bool)
+            pub_bug_is_done(is_done)
+        except rospy.ServiceException, e:
+            print "Service call failed: %s" %e
 
     def callback_set_point(self, point_message):
         self.target_point = point_message.point
