@@ -4,6 +4,9 @@
     Created: 2020/05/3
     Author: Brendan Halloran
     Edited: Group 1 ecte477 2020  
+
+    This node listens to the goals which the old move_base used to listen to. Based on these goals, it
+    commands a bug algorithm to navigate towards the goal.
 """
 
 import rospy
@@ -43,35 +46,34 @@ class move_base_fake_node:
     # publish the state to the bug node, either start or stop. 
     def pub_state_to_bug(self,state,bugType):
         bug_service =bugType.value +'_node/start_stop'
-        
+        print "sending bug state "
         rospy.wait_for_service(bug_service)
-       
         try:
             # Create a service for the bug service to toggle state
             pub_bug_state = rospy.ServiceProxy(bug_service,SetBool)
             pub_bug_state(state) # tell bug node to change the exploration 
-      
+            print  "sent bug state "
         except rospy.ServiceException, e:
             print "Service call failed: %s" %e
 
     # publish the goal for the bug algorithm
     def pub_goal_to_bug(self,newGoal,bugType):
-       #get the point from the pose 
+        # /bug0 or /bug1 or /bug2
         goalPoint = newGoal.position
-         # /bug0 or /bug1 or /bug2
+        #goalPoint.x =newGoal.x
+       # goalPoint.y =newGoal.y
+        #goalPoint.z =newGoal.z
         bug_service =bugType.value +'_node/set_point'
         rospy.wait_for_service(bug_service)
         try:
-           
             # Create a service for the bug service to toggle state
             pub_bug_goal = rospy.ServiceProxy(bug_service,SetPoint)
             pub_bug_goal(goalPoint) # tell bug node to change the exploration 
-            rospy.logdebug("[move base fake] sending new position goal")
-           
+            print  "sent bug state "
         except rospy.ServiceException, e:
             print "Service call failed: %s" %e
 
-    # 
+
     def execute_callback(self, move_base_goal):
         self.goal = move_base_goal.target_pose.pose                                                 # Set the provided goal as the current goal
         rospy.logdebug('[Move Base Fake] Execute Callback: {}'.format(str(self.goal.position)))
@@ -134,6 +136,7 @@ class move_base_fake_node:
         rospy.logdebug('[Move Base Fake] Shutting Down')
         
     
+        self.pub_state_to_bug(False, self.bugType)
         self.goal = None                        # Stop everything
         self.valid_goal = False
         self.current_goal_started = False
@@ -157,7 +160,7 @@ class move_base_fake_node:
 
 if __name__ == '__main__':
     print "Starting ROS Move Base Fake module"
-    rospy.init_node('move_base_fake_node', anonymous=True, log_level=rospy.DEBUG)
+    rospy.init_node('move_base_fake_node', anonymous=True, log_level=rospy.INFO)
     move_base = move_base_fake_node()
     try:
         rospy.spin()
