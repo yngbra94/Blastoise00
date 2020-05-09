@@ -212,7 +212,7 @@ Visualization Manager:
       Radius: 0.0299999993
       Shaft Diameter: 0.100000001
       Shaft Length: 0.100000001
-      Topic: /ecte_477/path
+      Topic: /ecte477/path
       Unreliable: false
       Value: true
   Enabled: true

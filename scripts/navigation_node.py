@@ -46,6 +46,15 @@ class navigation_node:
         self.currentPose = PoseStamped()
         self.robotCurrentState = RobotState.WAITING_TO_START # Initial starting state
 
+        # Publishers 
+        # Publishes new goals to the robot. 
+        self.pub_new_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
+        self.pub_cancel_all_goals = rospy.Publisher('/move_base/cancel', GoalID, queue_size=10)
+        self.pub_map = rospy.Publisher('ecte477/map', OccupancyGrid, queue_size=10)
+
+        # Publish curret robot action
+        self.pub_robotCurrentState = rospy.Publisher('robot_current_state/', String , queue_size=10)
+
         # Sub to command server status 
         self.sub_server_cmd = rospy.Subscriber('state', String, self.server_cmd)
 
@@ -61,21 +70,10 @@ class navigation_node:
         # Sub to /map
         self.sub_map = rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
 
-        # Sub to odom for path messages -> publish to ecte_477/path
+        # Sub to odom for path messages -> publish to ecte477/path
         self.subscriber_odometry = rospy.Subscriber('odom/', Odometry, self.callback_get_path)  # Added callback for 'path'
-        self.publisher_path = rospy.Publisher('/ecte_477/path', Path, latch=True, queue_size=10) # Publisher for path msgs
+        self.publisher_path = rospy.Publisher('/ecte477/path', Path, latch=True, queue_size=10) # Publisher for path msgs
         self.path = Path()  # -> callback_path
-
-
-        #
-        # Publisher 
-        # Publishes new goals to the robot. 
-        self.pub_new_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
-        self.pub_cancel_all_goals = rospy.Publisher('/move_base/cancel', GoalID, queue_size=10)
-        self.pub_map = rospy.Publisher('ecte477/map', OccupancyGrid, queue_size=10)
-
-        # Publish curret robot action
-        self.pub_robotCurrentState = rospy.Publisher('robot_current_state/', String , queue_size=10)
 
         if(self.debug):
             print("Init done")
