@@ -88,7 +88,7 @@ class bug0_node:
         rospy.wait_for_service(move_base_fake_service)
         try:
             # Create a service to tell move_base_fake that bug is done
-            pub_bug_is_done = rospy.ServiceProxy(move_base_fake_service,bool)
+            pub_bug_is_done = rospy.ServiceProxy(move_base_fake_service,SetBool)
             pub_bug_is_done(is_done)
         except rospy.ServiceException, e:
             print "Service call failed: %s" %e
