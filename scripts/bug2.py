@@ -106,7 +106,7 @@ class bug2_node:
         # If the state is GO_TO_POINT, check if is should change to CIRCUMNAVIGATE state
         if self.state == Bug2State.GO_TO_POINT: 
             
-            if self.regions['front'] < MAX_APPROACH_DIST:
+            if self.regions['front'] < MAX_APPROACH_DIST and self.yaw_error_to_point(self.position, self.target_point) <= 0.2:
                 # -TODO And furter away from the point  
                 self.wall_follow_start_point = self.position
                 self.wall_follow_closest_point = self.position
