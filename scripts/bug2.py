@@ -103,13 +103,8 @@ class bug2_node:
         
         # Check if state needs changing 
         if self.state == Bug2State.GO_TO_POINT: 
-<<<<<<< HEAD
             
             if self.regions['front'] < MAX_APPROACH_DIST and self.yaw_error_to_point(self.position, self.target_point) <= 0.2 and self.yaw_error_to_point(self.position, self.target_point) >= -0.2:  
-=======
-            # Check if a wall/obstacle is in front of the robot
-            if self.regions['front'] < MAX_APPROACH_DIST and self.yaw_error_to_point(self.position, self.target_point) <= 0.2 and self.yaw_error_to_point(self.position, self.target_point) >= -0.2: ## TODO: add a restriction so the robot can continuse go to point if in a wall corner. 
->>>>>>> 4eec4d9af2867be0f6729fb36feed96c0fbb92f9
                 self.wall_follow_start_point = self.position
                 self.wall_follow_closest_point = self.position
                 self.state_counter = 0
