@@ -44,8 +44,7 @@ class bug2_node:
         # Wall Follow init state 
         self.wall_follow_left_dir    = False
         self.wall_follow_start_point   = None
-        self.wall_follow_closest_point = None
-         
+        self.wall_follow_closest_point = None         
 
         # Robot state
         self.position = Point()
@@ -61,7 +60,6 @@ class bug2_node:
         self.start_wall_follower = rospy.ServiceProxy('/wall_follower_node/start_stop', SetBool)
         self.left_wall_follower = rospy.ServiceProxy('/wall_follower_node/follow_left', SetBool)
         self.go_to_point_set_point = rospy.ServiceProxy('/go_to_point_node/set_point', SetPoint)
-
         
 
         # Wait for service to be available. 
@@ -94,7 +92,7 @@ class bug2_node:
         And if the state need to be changed.
         """
         
-        # If we anr no longer navigation don't proceed 
+        # If we are no longer navigating then don't proceed 
         if not self.active: 
             return
 
@@ -104,32 +102,32 @@ class bug2_node:
         
         # Check if state needs changing 
         if self.state == Bug2State.GO_TO_POINT: 
-            
+            # Check if a wall/obstacle is in front of the robot
             if self.regions['front'] < MAX_APPROACH_DIST and self.yaw_error_to_point(self.position, self.target_point) <= 0.2 and self.yaw_error_to_point(self.position, self.target_point) >= -0.2: ## TODO: add a restriction so the robot can continuse go to point if in a wall corner. 
                 self.wall_follow_start_point = self.position
                 self.wall_follow_closest_point = self.position
                 self.state_counter = 0
 
-                if self.regions['fleft'] <= self.regions['fright']: #or self.regions['left'] < self.regions['right']:
+                if self.regions['fleft'] <= self.regions['fright']: # If wall is closer to the left, follow left
                         print ("wall follow left")
                         self.set_wall_follower_dir(True)
-                elif self.regions['fleft'] > self.regions['fright']: #or self.regions['left'] > self.regions['right']:
+                elif self.regions['fleft'] > self.regions['fright']:    # If wall is closer to the right, follow right
                         print ("wall follow right")
                         self.set_wall_follower_dir(False)
 
-                self.change_state(Bug2State.WALL_FOLLOW)
+                self.change_state(Bug2State.WALL_FOLLOW)    # Robot enters wall follow, default = left direction
             
             
-        # If the State is Wall follow and the timer has exceeded state counter limit and the robot is close to the line. 
+        # If the State is Wall Follow and the timer has exceeded state counter limit and the robot is close to the line. 
         # Change to Go To Point. 
         elif self.state == Bug2State.WALL_FOLLOW:  
             self.state_counter += 1 
-            # Give the robot time to move out from the dist presition area. 
-            # Check it the current position is close to the line. 
+            # Give the robot time to move out from the dist precision area. 
+            # Check if the current position is close to the line. 
 
             if self.state_counter > STATE_COUNTER_LIMIT and self.distance_to_line(self.wall_follow_start_point, self.target_point, self.position) < DIST_PRECISION:
                 # Check if your robot has moved away from the target point. 
-                # If it has, change wall follower direction nad change state to GO TO POINT  
+                # If it has, change wall follower direction and change state to GO TO POINT  
                 if self.distance_points(self.position, self.target_point) > self.distance_points(self.wall_follow_start_point, self.target_point): 
                     self.change_wall_follower_dir()
                     self.change_state(Bug2State.GO_TO_POINT)
@@ -205,8 +203,7 @@ class bug2_node:
             else: 
                 return SetBoolResponse(False ,'Already  Stopped')
 
-    # Change wall follower direction. 
-
+    # Set wall follower direction
     def set_wall_follower_dir(self, left_dir):
         if left_dir  == True:
             self.wall_follow_left_dir = True
@@ -214,7 +211,7 @@ class bug2_node:
         else:
             self.wall_follow_left_dir = False
             self.left_wall_follower(self.wall_follow_left_dir)
-
+    # Toggle wall follower direction
     def change_wall_follower_dir(self):
         if self.wall_follow_left_dir == True: 
             self.wall_follow_left_dir = False
