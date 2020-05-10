@@ -51,6 +51,7 @@ class bug2_node:
         self.position = Point()
         self.yaw      = 0
         self.regions  = None
+        self.dynamic_region = None
 
         # Services this node offers. 
         self.service_start_stop = rospy.Service('~start_stop', SetBool, self.callback_state)
@@ -106,7 +107,7 @@ class bug2_node:
         # If the state is GO_TO_POINT, check if is should change to CIRCUMNAVIGATE state
         if self.state == Bug2State.GO_TO_POINT: 
             
-            if self.regions['front'] < MAX_APPROACH_DIST and self.yaw_error_to_point(self.position, self.target_point) <= 0.2 and self.yaw_error_to_point(self.position, self.target_point) >= -0.2: ## TODO: add a restriction so the robot can continuse go to point if in a wall corner. 
+            if self.regions['front'] < MAX_APPROACH_DIST and self.yaw_error_to_point(self.position, self.target_point) <= 0.2 and self.yaw_error_to_point(self.position, self.target_point) >= -0.2:  
                 self.wall_follow_start_point = self.position
                 self.wall_follow_closest_point = self.position
                 self.state_counter = 0
@@ -292,6 +293,28 @@ class bug2_node:
         'left':    min(min(scan.ranges [54:90]) , 3.5),
         } 
 
+        dynamic_range = 25
+        dynamic_angle_deg = int(-self.yaw_error_to_point(self.position, self.target_point) * (180/math.pi))
+        dynamic_max = dynamic_angle_deg + dynamic_range
+        dynamic_min = dynamic_angle_deg - dynamic_range
+        if dynamic_max < 0: 
+            dynamic_max = dynamic_max + 360
+        if dynamic_min < 0: 
+            dynamic_min = dynamic_min + 360
+        if dynamic_angle_deg < 0: 
+            dynamic_angle_deg = dynamic_angle_deg + 360
+        rospy.loginfo('Dynamic angle is: min: {0}, and max {1}'.format(dynamic_min, dynamic_max))
+        
+        if dynamic_max > dynamic_min: 
+            self.dynamic_range = min(min(scan.ranges [dynamic_min:dynamic_max]) , 3.5)
+           
+        # If the region is deviled around 0/360
+        else: 
+            self.dynamic_range = min(min(min(scan.ranges [dynamic_max:dynamic_angle_deg+(360-dynamic_angle_deg)]) , min(scan.ranges [0:dynamic_min])), 3.5) 
+        
+            
+
+
     ### Publishes 
     # Tell move_base_fake that bug is done 
     def pub_done_move_base_fake(self,is_done):
@@ -358,7 +381,8 @@ class bug2_node:
             error_angle = self.yaw - points_angle
         elif quadrant == 2 or quadrant == 3: 
             error_angle = self.yaw - points_angle + math.pi
-
+        elif quadrant == 4:
+            error_angle = self.yaw - points_angle + 2 * math.pi
         return self.normalise_angle(error_angle)
 
         
