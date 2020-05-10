@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #!/usr/bin/env  python
 
 
@@ -403,3 +404,5 @@ if __name__ == '__main__':
         print "Shutting down ROS Bug1 module"
 
 
+=======
+>>>>>>> 54cd7dbb23a6f858bca3bf42aa8552cd31a14edb
