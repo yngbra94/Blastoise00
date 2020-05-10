@@ -106,7 +106,7 @@ class bug2_node:
         # If the state is GO_TO_POINT, check if is should change to CIRCUMNAVIGATE state
         if self.state == Bug2State.GO_TO_POINT: 
             
-            if self.regions['front'] < MAX_APPROACH_DIST: #and self.yaw_error_to_point(self.position, self.target_point) <= 0.2: ## TODO: add a restriction so the robot can continuse go to point if in a wall corner. 
+            if self.regions['front'] < MAX_APPROACH_DIST and self.yaw_error_to_point(self.position, self.target_point) <= 0.2 and self.yaw_error_to_point(self.position, self.target_point) >= -0.2: ## TODO: add a restriction so the robot can continuse go to point if in a wall corner. 
                 self.wall_follow_start_point = self.position
                 self.wall_follow_closest_point = self.position
                 self.state_counter = 0 
@@ -117,8 +117,8 @@ class bug2_node:
                     print (self.regions['fright'] - self.regions['fleft'])
                     self.set_wall_follower_dir(True)
                 elif (((self.regions['fright'] - self.regions['fleft']) < 0.05) and self.regions['fleft'] < MAX_APPROACH_DIST): # if robot is roughly half way between walls -> stay on follow left
-                        print ("wall follow right")
-                        self.set_wall_follower_dir(False)
+                    print ("wall follow right")
+                    self.set_wall_follower_dir(False)
             
             """
             if self.regions['fleft'] < MAX_APPROACH_DIST:
@@ -333,9 +333,8 @@ class bug2_node:
         delta_x = point2.x - point1.x 
         delta_y = point2.y - point1.y
         if delta_x != 0: 
-            angle = math.atan2(delta_y, delta_x)
+            angle = math.atan(delta_y / delta_x)
            
-        angle = self.normalise_angle(angle)
         return angle
         
     # Calculate the orientation of the robot in relations to the target point. 
@@ -350,7 +349,8 @@ class bug2_node:
             error_angle = self.yaw - points_angle
         elif quadrant == 2 or quadrant == 3: 
             error_angle = self.yaw - points_angle + math.pi
-        return error_angle
+
+        return self.normalise_angle(error_angle)
 
         
     # Find quadrant a point is in in relations to another. 
