@@ -15,7 +15,7 @@ from movement_starter.srv import SetPoint, SetPointResponse
 from geometry_msgs.msg import PoseStamped
 
 YAW_PERCISTION = (math.pi / 90) # +/- 2 degrees  in  radians
-DIST_PRECISION = 0.12           # metre
+DIST_PRECISION = 0.1          # metre
 MAX_SIDE_LIMIT = 0.5            # This  furthest  distance  we 'see' the  wall to the  side
 MAX_APPROACH_DIST = 0.8         # The  closest  we want to get to a wall  from  the  front
 STATE_COUNTER_LIMIT = 50        # Iterations 
