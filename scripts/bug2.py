@@ -103,7 +103,6 @@ class bug2_node:
             self.change_state(Bug2State.DONE)
         
         # Check if state needs changing 
-        # If the state is GO_TO_POINT, check if is should change to CIRCUMNAVIGATE state
         if self.state == Bug2State.GO_TO_POINT: 
             
             if self.regions['front'] < MAX_APPROACH_DIST and self.yaw_error_to_point(self.position, self.target_point) <= 0.2 and self.yaw_error_to_point(self.position, self.target_point) >= -0.2: ## TODO: add a restriction so the robot can continuse go to point if in a wall corner. 
@@ -132,7 +131,7 @@ class bug2_node:
                 # Check if your robot has moved away from the target point. 
                 # If it has, change wall follower direction nad change state to GO TO POINT  
                 if self.distance_points(self.position, self.target_point) > self.distance_points(self.wall_follow_start_point, self.target_point): 
-                    #self.change_wall_follower_dir()
+                    self.change_wall_follower_dir()
                     self.change_state(Bug2State.GO_TO_POINT)
                 # If it has not, GO TO POINT. 
                 else:
