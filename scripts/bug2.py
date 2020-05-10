@@ -22,16 +22,17 @@ STATE_COUNTER_LIMIT = 50        # Iterations
 
 # TODO: 
 """
-
 1.  Make the changeing  between go to point and wall follower so it senses the direction of the wall (left-right)
     Use this knowledge to select the wall follower direction. 
 
 2.  Use the orientation of the robot to align it with the line before it is able to go back to wall follower. 
     This will make it follow the line even though and go to point even if it has a wall in front of it. 
-
-
 """
 
+class Bug2State(Enum):
+    GO_TO_POINT = 1
+    WALL_FOLLOW = 2
+    DONE = 3
 class bug2_node: 
     def __init__(self):
         # Node State
@@ -92,6 +93,7 @@ class bug2_node:
         It is able to check if a goal is reached,
         And if the state need to be changed.
         """
+        
         # If we anr no longer navigation don't proceed 
         if not self.active: 
             return
@@ -103,8 +105,8 @@ class bug2_node:
         # Check if state needs changing 
         # If the state is GO_TO_POINT, check if is should change to CIRCUMNAVIGATE state
         if self.state == Bug2State.GO_TO_POINT: 
-            # self.state_counter += 1 
-            if self.regions['front'] < MAX_APPROACH_DIST: ## TODO: add a restriction so the robot can continuse go to point if in a wall corner. 
+            
+            if self.regions['front'] < MAX_APPROACH_DIST:
                 # -TODO And furter away from the point  
                 self.wall_follow_start_point = self.position
                 self.wall_follow_closest_point = self.position
@@ -114,12 +116,11 @@ class bug2_node:
             
         # If the State is Wall follow and the timer has exceeded state counter limit and the robot is close to the line. 
         # Change to Go To Point. 
-
-
         elif self.state == Bug2State.WALL_FOLLOW:  
             self.state_counter += 1 
             # Give the robot time to move out from the dist presition area. 
             # Check it the current position is close to the line. 
+
             if self.state_counter > STATE_COUNTER_LIMIT and self.distance_to_line(self.wall_follow_start_point, self.target_point, self.position) < DIST_PRECISION:
                 # Check if your robot has moved away from the target point. 
                 # If it has, change wall follower direction nad change state to GO TO POINT  
@@ -295,8 +296,63 @@ class bug2_node:
         distance = up_eq/lo_eq
         return distance
 
+    # Calculate the angle between the robot pos and target point pos.
+    def calc_angle_two_points(self, point1, point2):
+        """
+        Calculate the angle between two points around the Z axis. 
+        :param point1: first point. 
+        :param point2: Second point. 
+        :return angle: the angle between the two points around the z axis. 
+        """
+        angle = 0
+        delta_x = point2.x - point1.x 
+        delta_y = point2.y - point1.y
+        if delta_x != 0: 
+            angle = math.atan2(delta_y, delta_x)
+           
+        angle = self.normalise_angle(angle)
+        return angle
+        
+    # Calculate the orientation of the robot in relations to the target point. 
+    #         
+    def yaw_error_to_point(self, point1, point2):
+        # calculate the angle between two points. 
+        points_angle = self.calc_angle_two_points(point1, point2)
+        error_angle = 0
+        # Calculate the yaw error based on the quadrant. 
+        quadrant = self.calc_quadrant(point1, point2)
+        if quadrant == 1: 
+            error_angle = self.yaw - points_angle
+        elif quadrant == 2 or quadrant == 3: 
+            error_angle = self.yaw - points_angle + math.pi
+        return error_angle
 
-
+        
+    # Find quadrant a point is in in relations to another. 
+    def calc_quadrant(self, init_point, target_point):
+        """
+        Calculates the quadrant the target point is in in relations to the init point.
+              x
+          Q1  |  Q4
+        y ----+----
+          Q2  |  Q3
+        
+        :param init_point: Initial point. Eg; robot pos
+        :param target_point: Another point. Eg; the target of the robot. 
+        """
+        quadrant = 0
+        d_x = target_point.x - init_point.x
+        d_y = target_point.y - init_point.y
+        # 1. Check the position quadrant. 
+        if d_x >= 0 and d_y >= 0: 
+            quadrant = 1
+        elif d_x < 0 and d_y >= 0: 
+            quadrant = 2
+        elif d_x < 0 and d_y < 0: 
+            quadrant = 3
+        elif d_x >= 0 and d_y < 0: 
+            quadrant = 4
+        return quadrant
 
 
 
@@ -311,8 +367,3 @@ if __name__ == '__main__':
         print "Shutting down ROS Bug1 module"
 
 
-
-class Bug2State(Enum):
-    GO_TO_POINT = 1
-    WALL_FOLLOW = 2
-    DONE = 3
