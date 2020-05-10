@@ -109,10 +109,10 @@ class bug2_node:
                 self.wall_follow_closest_point = self.position
                 self.state_counter = 0
 
-                if self.regions['fleft'] <= self.regions['fright']: # If wall is closer to the left, follow left
+                if self.regions['fleft'] <= self.regions['fright']: #or self.regions['left'] <= self.regions['right']: # If wall is closer to the left, follow left
                         print ("wall follow left")
                         self.set_wall_follower_dir(True)
-                elif self.regions['fleft'] > self.regions['fright']:    # If wall is closer to the right, follow right
+                elif self.regions['fleft'] > self.regions['fright']: #or self.regions['left'] > self.regions['right']:    # If wall is closer to the right, follow right
                         print ("wall follow right")
                         self.set_wall_follower_dir(False)
 
