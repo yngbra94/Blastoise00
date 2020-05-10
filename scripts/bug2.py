@@ -106,13 +106,29 @@ class bug2_node:
         # If the state is GO_TO_POINT, check if is should change to CIRCUMNAVIGATE state
         if self.state == Bug2State.GO_TO_POINT: 
             
-            if self.regions['front'] < MAX_APPROACH_DIST and self.yaw_error_to_point(self.position, self.target_point) <= 0.2:
-                # -TODO And furter away from the point  
+            if self.regions['front'] < MAX_APPROACH_DIST: #and self.yaw_error_to_point(self.position, self.target_point) <= 0.2: ## TODO: add a restriction so the robot can continuse go to point if in a wall corner. 
                 self.wall_follow_start_point = self.position
                 self.wall_follow_closest_point = self.position
                 self.state_counter = 0 
                 self.change_state(Bug2State.WALL_FOLLOW)
-
+            
+                if self.regions['fleft'] <= self.regions['fright']:
+                    print ("wall follow left")
+                    print (self.regions['fright'] - self.regions['fleft'])
+                    self.set_wall_follower_dir(True)
+                elif (((self.regions['fright'] - self.regions['fleft']) < 0.05) and self.regions['fleft'] < MAX_APPROACH_DIST): # if robot is roughly half way between walls -> stay on follow left
+                        print ("wall follow right")
+                        self.set_wall_follower_dir(False)
+            
+            """
+            if self.regions['fleft'] < MAX_APPROACH_DIST:
+                print ("wall follow left")
+                print (self.regions['fright'] - self.regions['fleft'])
+                self.set_wall_follower_dir(True)
+            elif self.regions['fright'] < MAX_APPROACH_DIST and self.regions['fright'] < self.regions['fleft']: # if robot is roughly half way between walls -> stay on follow left
+                print ("wall follow right")
+                self.set_wall_follower_dir(False)
+            """
             
         # If the State is Wall follow and the timer has exceeded state counter limit and the robot is close to the line. 
         # Change to Go To Point. 
@@ -200,6 +216,15 @@ class bug2_node:
                 return SetBoolResponse(False ,'Already  Stopped')
 
     # Change wall follower direction. 
+
+    def set_wall_follower_dir(self, left_dir):
+        if left_dir  == True:
+            self.wall_follow_left_dir = True
+            self.left_wall_follower(self.wall_follow_left_dir)
+        else:
+            self.wall_follow_left_dir = False
+            self.left_wall_follower(self.wall_follow_left_dir)
+
     def change_wall_follower_dir(self):
         if self.wall_follow_left_dir == True: 
             self.wall_follow_left_dir = False
