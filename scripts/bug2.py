@@ -109,16 +109,25 @@ class bug2_node:
             if self.regions['front'] < MAX_APPROACH_DIST and self.yaw_error_to_point(self.position, self.target_point) <= 0.2 and self.yaw_error_to_point(self.position, self.target_point) >= -0.2: ## TODO: add a restriction so the robot can continuse go to point if in a wall corner. 
                 self.wall_follow_start_point = self.position
                 self.wall_follow_closest_point = self.position
-                self.state_counter = 0 
+                self.state_counter = 0
+
+                if self.regions['fleft'] <= self.regions['fright']:
+                    if self.regions['left'] < self.regions['right']:
+                        print ("wall follow left")
+                        self.set_wall_follower_dir(True)
+                elif self.regions['fleft'] > self.regions['fright']:
+                    if self.regions['left'] > self.regions['right']:
+                        print ("wall follow right")
+                        self.set_wall_follower_dir(False)
+
                 self.change_state(Bug2State.WALL_FOLLOW)
             
-                if self.regions['fleft'] <= self.regions['fright']:
-                    print ("wall follow left")
-                    print (self.regions['fright'] - self.regions['fleft'])
-                    self.set_wall_follower_dir(True)
-                elif (((self.regions['fright'] - self.regions['fleft']) < 0.05) and self.regions['fleft'] < MAX_APPROACH_DIST): # if robot is roughly half way between walls -> stay on follow left
-                    print ("wall follow right")
-                    self.set_wall_follower_dir(False)
+ 
+                
+                
+                #elif (((self.regions['fright'] - self.regions['fleft']) < 0.05) and self.regions['fleft'] < MAX_APPROACH_DIST): # if robot is roughly half way between walls -> stay on follow left
+                 #       print ("wall follow right")
+                  #      self.set_wall_follower_dir(False)
             
             """
             if self.regions['fleft'] < MAX_APPROACH_DIST:
@@ -141,7 +150,7 @@ class bug2_node:
                 # Check if your robot has moved away from the target point. 
                 # If it has, change wall follower direction nad change state to GO TO POINT  
                 if self.distance_points(self.position, self.target_point) > self.distance_points(self.wall_follow_start_point, self.target_point): 
-                    self.change_wall_follower_dir()
+                    #self.change_wall_follower_dir()
                     self.change_state(Bug2State.GO_TO_POINT)
                 # If it has not, GO TO POINT. 
                 else:
