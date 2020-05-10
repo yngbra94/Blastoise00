@@ -89,7 +89,7 @@ class bug2_node:
     def loop(self):
         """
         Node loop. 
-        Controlls the Bug1 node
+        Controls the Bug1 node
         It is able to check if a goal is reached,
         And if the state need to be changed.
         """
@@ -120,22 +120,6 @@ class bug2_node:
 
                 self.change_state(Bug2State.WALL_FOLLOW)
             
- 
-                
-                
-                #elif (((self.regions['fright'] - self.regions['fleft']) < 0.05) and self.regions['fleft'] < MAX_APPROACH_DIST): # if robot is roughly half way between walls -> stay on follow left
-                 #       print ("wall follow right")
-                  #      self.set_wall_follower_dir(False)
-            
-            """
-            if self.regions['fleft'] < MAX_APPROACH_DIST:
-                print ("wall follow left")
-                print (self.regions['fright'] - self.regions['fleft'])
-                self.set_wall_follower_dir(True)
-            elif self.regions['fright'] < MAX_APPROACH_DIST and self.regions['fright'] < self.regions['fleft']: # if robot is roughly half way between walls -> stay on follow left
-                print ("wall follow right")
-                self.set_wall_follower_dir(False)
-            """
             
         # If the State is Wall follow and the timer has exceeded state counter limit and the robot is close to the line. 
         # Change to Go To Point. 
