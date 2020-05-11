@@ -1,10 +1,4 @@
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> e9ccaef5e93e6ca323dfd18a30c720d10b118262
-#!/usr/bin/env  python
-
-
+#!/usr/bin/env python
 
 import rospy
 import tf
@@ -107,48 +101,22 @@ class bug2_node:
         
         # Check if state needs changing 
         if self.state == Bug2State.GO_TO_POINT: 
-            
-<<<<<<< HEAD
-            if self.regions['front'] < MAX_APPROACH_DIST:
+            if self.dynamic_region < MAX_APPROACH_DIST:
                 if self.yaw_error_to_point(self.position, self.target_point) <= 0.2 and self.yaw_error_to_point(self.position, self.target_point) >= -0.2:  
                     self.wall_follow_start_point = self.position
                     self.wall_follow_closest_point = self.position
                     self.state_counter = 0
 
-                    if self.regions['fleft'] <= self.regions['fright']: # If wall is closer to the left, follow left
+                    if self.regions['fleft'] <= self.regions['fright'] or self.regions['left'] <= self.regions['right']: # If wall is closer to the left, follow left
                         print ("wall follow left")
                         self.set_wall_follower_dir(True)
-                    elif self.regions['fleft'] > self.regions['fright']:   # If wall is closer to the right, follow right
+                    elif self.regions['fleft'] > self.regions['fright'] or self.regions['left'] > self.regions['right']: # If wall is closer to the right, follow right
                         print ("wall follow right")
                         self.set_wall_follower_dir(False)
 
-                    self.change_state(Bug2State.WALL_FOLLOW)    # Robot enters wall follow, default = left direction
-
-            # there is a wall to follow in the direction of the point. 
-            elif self.dynamic_region < MAX_APPROACH_DIST:
-                    self.wall_follow_start_point = self.position
-                    self.wall_follow_closest_point = self.position
-                    self.state_counter = 0
-
-                    if self.regions['fleft'] <= self.regions['fright']: # If wall is closer to the left, follow left
-                        print ("wall follow left")
-                        self.set_wall_follower_dir(True)
-                    elif self.regions['fleft'] > self.regions['fright']:   # If wall is closer to the right, follow right
-                        print ("wall follow right")
-                        self.set_wall_follower_dir(False)
-
-            if self.regions['front'] < MAX_APPROACH_DIST and self.yaw_error_to_point(self.position, self.target_point) <= 0.2 and self.yaw_error_to_point(self.position, self.target_point) >= -0.2:  
                 self.wall_follow_start_point = self.position
                 self.wall_follow_closest_point = self.position
                 self.state_counter = 0
-
-                if self.regions['fleft'] <= self.regions['fright'] or self.regions['left'] <= self.regions['right']: # If wall is closer to the left, follow left
-                        print ("wall follow left")
-                        self.set_wall_follower_dir(True)
-                elif self.regions['fleft'] > self.regions['fright'] or self.regions['left'] > self.regions['right']: # If wall is closer to the right, follow right
-                        print ("wall follow right")
-                        self.set_wall_follower_dir(False)
-
                 self.change_state(Bug2State.WALL_FOLLOW)    # Robot enters wall follow, default = left direction
                        
         # If the State is Wall Follow and the timer has exceeded state counter limit and the robot is close to the line. 
@@ -434,9 +402,3 @@ if __name__ == '__main__':
     except KeyboardInterrupt: 
         print "Shutting down ROS Bug1 module"
 
-
-<<<<<<< HEAD
-=======
-=======
->>>>>>> 54cd7dbb23a6f858bca3bf42aa8552cd31a14edb
->>>>>>> e9ccaef5e93e6ca323dfd18a30c720d10b118262
