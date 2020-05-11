@@ -286,11 +286,11 @@ class bug2_node:
 
         # 
         if dynamic_max > dynamic_min: 
-            self.dynamic_range = min(min(scan.ranges [dynamic_min:dynamic_max]) , 3.5)
+            self.dynamic_region = min(min(scan.ranges [dynamic_min:dynamic_max]) , 3.5)
  
         # If the region is deviled around 0/360
         else: 
-            self.dynamic_range = min(min(min(scan.ranges [dynamic_max:dynamic_angle_deg+(360-dynamic_angle_deg)]) , min(scan.ranges [0:dynamic_min])), 3.5) 
+            self.dynamic_region = min(min(min(scan.ranges [dynamic_max:dynamic_angle_deg+(360-dynamic_angle_deg)]) , min(scan.ranges [0:dynamic_min])), 3.5) 
         
             
 
