@@ -128,13 +128,15 @@ class bug2_node:
 
             if self.state_counter > STATE_COUNTER_LIMIT and self.distance_to_line(self.wall_follow_start_point, self.target_point, self.position) < DIST_PRECISION:
                 # Check if your robot has moved away from the target point. 
+                """
                 # If it has, change wall follower direction and change state to GO TO POINT  
                 if self.distance_points(self.position, self.target_point) > self.distance_points(self.wall_follow_start_point, self.target_point): 
                     self.change_wall_follower_dir()
                     self.change_state(Bug2State.GO_TO_POINT)
                 # If it has not, GO TO POINT. 
                 else:
-                    self.change_state(Bug2State.GO_TO_POINT)
+                """
+                self.change_state(Bug2State.GO_TO_POINT)
                 
 
         # If the state required does not exist send error message. 
