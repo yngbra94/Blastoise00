@@ -137,24 +137,20 @@ class bug2_node:
                         print ("wall follow right")
                         self.set_wall_follower_dir(False)
 
-
-=======
             if self.regions['front'] < MAX_APPROACH_DIST and self.yaw_error_to_point(self.position, self.target_point) <= 0.2 and self.yaw_error_to_point(self.position, self.target_point) >= -0.2:  
                 self.wall_follow_start_point = self.position
                 self.wall_follow_closest_point = self.position
                 self.state_counter = 0
 
-                if self.regions['fleft'] <= self.regions['fright']: #or self.regions['left'] <= self.regions['right']: # If wall is closer to the left, follow left
+                if self.regions['fleft'] <= self.regions['fright'] or self.regions['left'] <= self.regions['right']: # If wall is closer to the left, follow left
                         print ("wall follow left")
                         self.set_wall_follower_dir(True)
-                elif self.regions['fleft'] > self.regions['fright']: #or self.regions['left'] > self.regions['right']:    # If wall is closer to the right, follow right
+                elif self.regions['fleft'] > self.regions['fright'] or self.regions['left'] > self.regions['right']: # If wall is closer to the right, follow right
                         print ("wall follow right")
                         self.set_wall_follower_dir(False)
 
                 self.change_state(Bug2State.WALL_FOLLOW)    # Robot enters wall follow, default = left direction
->>>>>>> e9ccaef5e93e6ca323dfd18a30c720d10b118262
-            
-            
+                       
         # If the State is Wall Follow and the timer has exceeded state counter limit and the robot is close to the line. 
         # Change to Go To Point. 
         elif self.state == Bug2State.WALL_FOLLOW:  
@@ -317,11 +313,11 @@ class bug2_node:
             dynamic_min = dynamic_min + 360
         if dynamic_angle_deg < 0: 
             dynamic_angle_deg = dynamic_angle_deg + 360
-        rospy.loginfo('Dynamic angle is: min: {0}, and max {1}'.format(dynamic_min, dynamic_max))
-        
+
+        # 
         if dynamic_max > dynamic_min: 
             self.dynamic_range = min(min(scan.ranges [dynamic_min:dynamic_max]) , 3.5)
-           
+ 
         # If the region is deviled around 0/360
         else: 
             self.dynamic_range = min(min(min(scan.ranges [dynamic_max:dynamic_angle_deg+(360-dynamic_angle_deg)]) , min(scan.ranges [0:dynamic_min])), 3.5) 
