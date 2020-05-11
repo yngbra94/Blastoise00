@@ -1,0 +1,13 @@
+move_base tuning:
+
+to avoid wall corners:
+	inflation radius
+	cost scaling factor
+
+avoid cutting corners:
+ 	forward point distance
+
+path distance bias
+goal distance bias
+
+occdist scale
