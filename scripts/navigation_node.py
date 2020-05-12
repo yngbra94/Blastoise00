@@ -27,6 +27,7 @@ from geometry_msgs.msg import PoseStamped
 from std_srvs.srv import SetBool 
 from actionlib_msgs.msg import GoalID
 from nav_msgs.msg import OccupancyGrid, Odometry, Path
+from Blastoise00.srv import SetOrientation
 
 
 
@@ -42,6 +43,7 @@ class navigation_node:
         self.poseExist = False
         # make a pose in pos;[0 0 0] orientation; [0 0 0 1]
         self.initPose = PoseStamped()
+        self.initPose.pose.orientation.z = 0.0
         self.initPose.pose.orientation.w = 1.0 # 
         self.currentPose = PoseStamped()
         self.robotCurrentState = RobotState.WAITING_TO_START # Initial starting state
@@ -75,6 +77,9 @@ class navigation_node:
         self.publisher_path = rospy.Publisher('/ecte477/path', Path, latch=True, queue_size=10) # Publisher for path msgs
         self.path = Path()  # -> callback_path
 
+        # Service for the go_to_orientation_node to tell us it is done
+        self.bug_done_service = rospy.Service('/go_to_orientation/is_done/', SetBool, self.callback_orientation_done)
+
         if(self.debug):
             print("Init done")
 
@@ -95,10 +100,12 @@ class navigation_node:
         # If the command is to Pause the exploring, do so 
         if (cmd.data == RobotState.PAUSED.value):
             self.robot_pause()
-
         # If the command is to return home, do return home 
         if (cmd.data == RobotState.RETURNING.value):
             self.robot_return_home()
+        # If the command is to fix orientation, do so 
+        if (cmd.data == RobotState.ORIENTING.value):
+            self.robot_fix_orientation()
 
     # Set state of explore service to either true or false
     def set_explore_state(self, state):
@@ -132,7 +139,6 @@ class navigation_node:
             print("No home pose found. \n  check bringup order. ")
         # Publish the initial pose to return home
         else: 
-            
             if self.robotCurrentState != RobotState.RETURNING:
                 self.initPose.header = self.currentPose.header
                 self.pub_new_goal.publish(self.initPose) # Send goal to return home (the first position that was stored)
@@ -141,6 +147,22 @@ class navigation_node:
             if (self.debug):
                 print("Returning to home from pose: {0} \n To home pose: {1} ".format(self.currentPose, self.initPose))
 
+    # Set the orientation that the robot should be in when in home position.
+    # The desired orientation is then corrected by go_to_orientation_node
+    def robot_fix_orientation(self):
+        # check if there is no stored home pose
+        if not self.initPose:
+            print("No home pose found. \n  check bringup order. ")
+        # Publish the initial orientation to return home
+        else: 
+            set_orientation_service = '/set_orientation'
+            rospy.wait_for_service(set_orientation_service)
+            try:
+                # Create a service to tell move_base_fake that bug is done
+                pub_set_orientation = rospy.ServiceProxy(set_orientation_service,SetOrientation)
+                pub_set_orientation(self.initPose.pose.orientation.z)
+            except rospy.ServiceException, e:
+                print "Service call failed: %s" %e
 
     
     # Pause the current operation of the robot. 
@@ -154,6 +176,11 @@ class navigation_node:
 
         if(self.debug):
             print("Paused...")
+
+
+    def callback_orientation_done(self, data):
+        if data.data and self.robotCurrentState == RobotState.ORIENTING:
+            self.set_robot_action_and_pub(RobotState.DONE)
 
 
     # Callback for the robot pose.

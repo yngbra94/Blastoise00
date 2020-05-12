@@ -58,18 +58,26 @@ class command_server_node:
     # changes state to return home if the the exploring is finished. 
     # if it was returning and it is finished it is stopped and prints reached home. 
     def callback_robot_state(self, data):
-        if data.data == RobotState.DONE.value and self.state == RobotState.RETURNING:
-            self.state = RobotState.DONE
-            self.previusState = RobotState.DONE
-            #printing that the robot is finished. Added many lines to make it easy to see
-            rospy.loginfo("\n \n \n \n \n \n The robot has returned back to home.  \n \n \n \n \n \n")
-            rospy.loginfo("\n \n \n \n \n \n The robot has returned back to home.  \n \n \n \n \n \n")
-
+        # If robot is exploring and is done, the maze is fully explored. Start returning home.
         if data.data == RobotState.DONE.value and self.state == RobotState.EXPLORING:
             self.state = RobotState.RETURNING
             self.previusState=RobotState.RETURNING
             rospy.loginfo("Finished with exploring the maze")
+        
+        # If the robot is returning home and is done, the robot has reached home. Start fixing orientation.
+        elif data.data == RobotState.DONE.value and self.state == RobotState.RETURNING:
+            self.previusState = self.state
+            self.state = RobotState.ORIENTING
+            
+            #printing that the robot is finished. Added many lines to make it easy to see
+            rospy.loginfo("\n \n \n \n \n \n The robot has returned back to home.  \n \n \n \n \n \n")
+            rospy.loginfo("\n \n \n \n \n \n The robot has returned back to home.  \n \n \n \n \n \n")
 
+        # If the robot is fixing orientation at home and is done, the robot is finished and should stop.
+        elif data.data == RobotState.DONE.value and self.state == RobotState.ORIENTING:
+            self.previusState = self.state
+            self.state = RobotState.DONE
+            
 
     #listens to beacons left and stops exploring when all beacons is found and returns to 
     # start position        
