@@ -15,7 +15,7 @@ from geometry_msgs.msg import PoseStamped
 YAW_PERCISTION = (math.pi / 90) # +/- 2 degrees  in  radians
 DIST_PRECISION = 0.1          # metre
 MAX_SIDE_LIMIT = 0.5            # This  furthest  distance  we 'see' the  wall to the  side
-MAX_APPROACH_DIST = 0.8         # The  closest  we want to get to a wall  from  the  front
+MAX_APPROACH_DIST = 0.4       # The  closest  we want to get to a wall  from  the  front
 STATE_COUNTER_LIMIT = 50        # Iterations 
 
 # TODO: 
@@ -38,6 +38,7 @@ class bug2_node:
         self.target_point = Point()
         self.state = Bug2State.GO_TO_POINT # Placeholder for initial state
         self.state_counter = 0
+        self.robot_was_stuck = False
 
         # Wall Follow init state 
         self.wall_follow_left_dir    = False
@@ -76,6 +77,10 @@ class bug2_node:
         self.subscriber_laser_scan = rospy.Subscriber('scan/', LaserScan , self.callback_laser_scan)
         self.subscriber_odometry = rospy.Subscriber('odom/', Odometry , self.callback_odometry)
 
+        # Debug publishers
+        self.pub_debug = self.goal_pub = rospy.Publisher('~debug', Point, queue_size=10)
+
+
         # Loop 
         r = rospy.Rate(10)
         while not rospy.is_shutdown():
@@ -91,6 +96,8 @@ class bug2_node:
         And if the state need to be changed.
         """
         
+       
+
         # If we are no longer navigating then don't proceed 
         if not self.active: 
             return
@@ -101,23 +108,24 @@ class bug2_node:
         
         # Check if state needs changing 
         if self.state == Bug2State.GO_TO_POINT: 
-            if self.dynamic_region < MAX_APPROACH_DIST:
-                if self.yaw_error_to_point(self.position, self.target_point) <= 0.2 and self.yaw_error_to_point(self.position, self.target_point) >= -0.2:  
+            if self.yaw_error_to_point(self.position, self.target_point) <= 0.3 and self.yaw_error_to_point(self.position, self.target_point) >= -0.3: 
+                if self.regions['front'] < MAX_APPROACH_DIST:
+                    # If the robot has not been stuck, follow the closes wall.  
+                    if not self.robot_was_stuck:
+                        if self.regions['fleft'] <= self.regions['fright']: # or self.regions['left'] <= self.regions['right']: # If wall is closer to the left, follow left
+                            print ("wall follow left")
+                            self.set_wall_follower_dir(True)
+                        elif self.regions['fleft'] > self.regions['fright']: # or self.regions['left'] > self.regions['right']: # If wall is closer to the right, follow right
+                            rospy.loginfo("wall follow right")
+                            self.set_wall_follower_dir(False)
+                    # If the robot has been stuck continue with the same wall follower to get out of a loop. 
                     self.wall_follow_start_point = self.position
                     self.wall_follow_closest_point = self.position
                     self.state_counter = 0
-
-                    if self.regions['fleft'] <= self.regions['fright'] or self.regions['left'] <= self.regions['right']: # If wall is closer to the left, follow left
-                        print ("wall follow left")
-                        self.set_wall_follower_dir(True)
-                    elif self.regions['fleft'] > self.regions['fright'] or self.regions['left'] > self.regions['right']: # If wall is closer to the right, follow right
-                        print ("wall follow right")
-                        self.set_wall_follower_dir(False)
-
-                self.wall_follow_start_point = self.position
-                self.wall_follow_closest_point = self.position
-                self.state_counter = 0
-                self.change_state(Bug2State.WALL_FOLLOW)    # Robot enters wall follow, default = left direction
+                     
+                    self.change_state(Bug2State.WALL_FOLLOW)    # Robot enters wall follow, default = left direction
+                    # Debug
+                    rospy.loginfo('State is set to : {}'.format(self.state))
                        
         # If the State is Wall Follow and the timer has exceeded state counter limit and the robot is close to the line. 
         # Change to Go To Point. 
@@ -127,16 +135,37 @@ class bug2_node:
             # Check if the current position is close to the line. 
 
             if self.state_counter > STATE_COUNTER_LIMIT and self.distance_to_line(self.wall_follow_start_point, self.target_point, self.position) < DIST_PRECISION:
-                # Check if your robot has moved away from the target point. 
-                """
-                # If it has, change wall follower direction and change state to GO TO POINT  
-                if self.distance_points(self.position, self.target_point) > self.distance_points(self.wall_follow_start_point, self.target_point): 
-                    self.change_wall_follower_dir()
-                    self.change_state(Bug2State.GO_TO_POINT)
-                # If it has not, GO TO POINT. 
-                else:
-                """
-                self.change_state(Bug2State.GO_TO_POINT)
+               
+                # Check if the robot is straigth infront of a wall before go to point. 
+                if self.regions['front'] > 0.1 or self.regions['fleft'] > 0.08 or self.regions['fright'] > 0.08:
+                    # If it has, change wall follower direction and change state to GO TO POINT  
+                    currentPos_to_target = self.distance_points(self.position, self.target_point)
+                    wallfollowStart_to_target = self.distance_points(self.wall_follow_start_point, self.target_point)
+                    currentPos_to_wallfollowStart = self.distance_points(self.position, self.wall_follow_start_point)
+
+                    # If the robot is further away from it's goal, it is likely to go the wrong way. 
+                    if currentPos_to_target > wallfollowStart_to_target and not self.robot_was_stuck:
+                        # It the robot has passed the target point is has mover a fair bit and might be on the right track after all. 
+                        if wallfollowStart_to_target < currentPos_to_wallfollowStart:
+                            self.change_state(Bug2State.GO_TO_POINT)
+                        # if not, it is likely to have moved the wrong way. Try chaning the wall follower direction. 
+                        else: 
+                            self.change_wall_follower_dir()
+                            self.robot_was_stuck = True
+                            self.change_state(Bug2State.GO_TO_POINT)
+                    
+                    #  If the robot hits the line after is has been stuck it is ready to try again. 
+                    if self.robot_was_stuck: 
+                        self.robot_was_stuck = False
+                    
+                    else: 
+                        self.change_state(Bug2State.GO_TO_POINT)
+                    
+                    # Debug
+                    rospy.loginfo('State is set to : {}'.format(self.state))
+                
+                # If the robot has a wall in front, do not go to point, continue wall following. 
+                
                 
 
         # If the state required does not exist send error message. 
@@ -232,6 +261,8 @@ class bug2_node:
         :type point_message: SetPoint
         """
         self.target_point = point_message.point
+         # Debug
+        self.pub_debug.publish(self.target_point)
         resp = self.go_to_point_set_point(point_message.point)
         self.state = Bug2State.GO_TO_POINT
         rospy.logdebug('[Bug 2] Swapping to Go To Point')
@@ -286,11 +317,13 @@ class bug2_node:
 
         # 
         if dynamic_max > dynamic_min: 
-            self.dynamic_range = min(min(scan.ranges [dynamic_min:dynamic_max]) , 3.5)
+            self.dynamic_region = min(min(scan.ranges [dynamic_min:dynamic_max]) , 3.5)
  
         # If the region is deviled around 0/360
         else: 
-            self.dynamic_range = min(min(min(scan.ranges [dynamic_max:dynamic_angle_deg+(360-dynamic_angle_deg)]) , min(scan.ranges [0:dynamic_min])), 3.5) 
+            self.dynamic_region = min(min(min(scan.ranges [dynamic_max:dynamic_angle_deg+(360-dynamic_angle_deg)]) , min(scan.ranges [0:dynamic_min])), 3.5)
+
+         
         
             
 

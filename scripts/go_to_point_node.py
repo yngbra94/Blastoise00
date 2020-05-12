@@ -170,7 +170,7 @@ class go_to_point_node:
 
 if __name__ == '__main__':
     print "Starting ROS Go To Point module"
-    rospy.init_node('go_to_point_node', anonymous=True, log_level=rospy.DEBUG)
+    rospy.init_node('go_to_point_node', anonymous=True, log_level=rospy.INFO)
     gtp = go_to_point_node()
     try:
         rospy.spin()
