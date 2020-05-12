@@ -29,7 +29,7 @@ MAX_SIDE_LIMIT =    0.55                # This furthest distance we 'see' the wa
 MIN_APPROACH_DIST = 0.25                # The closest we want to get to a wall from the front
 MAX_APPROACH_DIST = 0.55                # The distance we want to start slowing to approach a front wall
 ROBOT_RADIUS =      0.20                # The bounding circle around the robot
-MAX_TRANS_SPEED =   0.4                 # Forward movement
+MAX_TRANS_SPEED =   1.0                 # Forward movement
 MAX_TURN_SPEED =    1.4                 # Rotation
 
 class FollowSide(Enum):
