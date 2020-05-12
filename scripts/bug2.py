@@ -154,7 +154,7 @@ class bug2_node:
                         # if not, it is likely to have moved the wrong way. Try chaning the wall follower direction. 
                         else: 
                             self.change_wall_follower_dir()
-                            self.robot_was_stuck += 1
+                            self.robot_was_stuck = self.robot_was_stuck + 1
                             self.change_state(Bug2State.GO_TO_POINT)
                             # Debug
                             rospy.loginfo('State is set to : {}'.format(self.state))
