@@ -3,7 +3,7 @@ costmap_topic: ecte477/map
 costmap_updates_topic: map_updates
 visualize: true
 planner_frequency: 0.33
-progress_timeout: 30.0
+progress_timeout: 100.0
 potential_scale: 3.0
 orientation_scale: 0.0
 gain_scale: 1.0
