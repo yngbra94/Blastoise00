@@ -1,6 +1,5 @@
 <launch>
     <!-- Arguments -->
-
     <arg name="auto_start" default="false"/>
 
 
@@ -21,7 +20,8 @@
     </node>
     <node pkg="Blastoise00" type="command_server_node.py" name="command_server_node" output="screen">
     </node>
-
+    <node pkg="Blastoise00" type="go_to_orientation_node.py" name="go_to_orientation_node" output="screen">
+    </node>
 
     
     
