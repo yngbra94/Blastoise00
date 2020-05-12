@@ -1,5 +1,5 @@
 robot_base_frame: base_link
-costmap_topic: map
+costmap_topic: ecte477/map
 costmap_updates_topic: map_updates
 visualize: true
 planner_frequency: 0.33
