@@ -38,7 +38,7 @@ class bug2_node:
         self.target_point = Point()
         self.state = Bug2State.GO_TO_POINT # Placeholder for initial state
         self.state_counter = 0
-        self.robot_was_stuck = False
+        self.robot_was_stuck_cnt = 0
 
         # Wall Follow init state 
         self.wall_follow_left_dir    = False
@@ -111,7 +111,7 @@ class bug2_node:
             if self.yaw_error_to_point(self.position, self.target_point) <= 0.3 and self.yaw_error_to_point(self.position, self.target_point) >= -0.3: 
                 if self.regions['front'] < MAX_APPROACH_DIST:
                     # If the robot has not been stuck, follow the closes wall.  
-                    if not self.robot_was_stuck:
+                    if self.robot_was_stuck_cnt == 0 :
                         if self.regions['fleft'] <= self.regions['fright']: # or self.regions['left'] <= self.regions['right']: # If wall is closer to the left, follow left
                             print ("wall follow left")
                             self.set_wall_follower_dir(True)
@@ -136,7 +136,7 @@ class bug2_node:
 
             if self.state_counter > STATE_COUNTER_LIMIT and self.distance_to_line(self.wall_follow_start_point, self.target_point, self.position) < DIST_PRECISION:
                
-                # Check if the robot is straigth infront of a wall before go to point. 
+                # Check if the robot is straigth in front of a wall before go to point. 
                 if self.regions['front'] > 0.1 or self.regions['fleft'] > 0.08 or self.regions['fright'] > 0.08:
                     # If it has, change wall follower direction and change state to GO TO POINT  
                     currentPos_to_target = self.distance_points(self.position, self.target_point)
@@ -144,25 +144,31 @@ class bug2_node:
                     currentPos_to_wallfollowStart = self.distance_points(self.position, self.wall_follow_start_point)
 
                     # If the robot is further away from it's goal, it is likely to go the wrong way. 
-                    if currentPos_to_target > wallfollowStart_to_target and not self.robot_was_stuck:
+                    if currentPos_to_target > wallfollowStart_to_target and self.robot_was_stuck_cnt == 0:
                         # It the robot has passed the target point is has mover a fair bit and might be on the right track after all. 
                         if wallfollowStart_to_target < currentPos_to_wallfollowStart:
                             self.change_state(Bug2State.GO_TO_POINT)
+                            # Debug
+                            rospy.loginfo('State is set to : {}'.format(self.state))
+
                         # if not, it is likely to have moved the wrong way. Try chaning the wall follower direction. 
                         else: 
                             self.change_wall_follower_dir()
-                            self.robot_was_stuck = True
+                            self.robot_was_stuck += 1
                             self.change_state(Bug2State.GO_TO_POINT)
+                            # Debug
+                            rospy.loginfo('State is set to : {}'.format(self.state))
                     
                     #  If the robot hits the line after is has been stuck it is ready to try again. 
-                    if self.robot_was_stuck: 
+                    elif self.robot_was_stuck_cnt == 2: 
                         self.robot_was_stuck = False
                     
                     else: 
                         self.change_state(Bug2State.GO_TO_POINT)
+                        # Debug
+                        rospy.loginfo('State is set to : {}'.format(self.state))
+
                     
-                    # Debug
-                    rospy.loginfo('State is set to : {}'.format(self.state))
                 
                 # If the robot has a wall in front, do not go to point, continue wall following. 
                 
