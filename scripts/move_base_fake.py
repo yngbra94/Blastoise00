@@ -1,12 +1,22 @@
 #!/usr/bin/env python
 """
     move_base_fake.py
+
+
+    This node listens to the goals which the old move_base used to listen to. Based on these goals, it
+    commands a bug algorithm to navigate towards the goal.
+    To send new goal to the code it is possible to use /move_base_simple/goal/ and publish a goal to this topic. 
+
+    Subscribed: move_base/, odom/, returning_done/, move_base_simple/goal, move_base/goal
+    Publishes: bug[bug number]_node/start_stop
+    service: move_base_fake/is_bug_done/
+
     Created: 2020/05/3
     Author: Brendan Halloran
     Edited: Group 1 ecte477 2020  
 
-    This node listens to the goals which the old move_base used to listen to. Based on these goals, it
-    commands a bug algorithm to navigate towards the goal.
+    
+
 """
 
 import rospy
@@ -32,7 +42,7 @@ class move_base_fake_node:
         self.current_goal_started = False       # Has the goal been started (i.e. have we told our Bug algorithm to use this point and start)
         self.current_goal_complete = False      # Has the Bug algorithm told us it completed 
         self.position = None                    # move_base feedback reports the current direction
-        self.bugType = bugType.BUG2             # set the bug type to be used 
+        self.bugType = bugType.BUG0             # set the bug type to be used 
 
         # Service for the Bug algorithm to tell us it is done
         self.bug_done_service = rospy.Service('/move_base_fake/is_bug_done/', SetBool, self.callback_complete)
@@ -60,9 +70,7 @@ class move_base_fake_node:
     def pub_goal_to_bug(self,newGoal,bugType):
         # /bug0 or /bug1 or /bug2
         goalPoint = newGoal.position
-        #goalPoint.x =newGoal.x
-       # goalPoint.y =newGoal.y
-        #goalPoint.z =newGoal.z
+     
         bug_service =bugType.value +'_node/set_point'
         rospy.wait_for_service(bug_service)
         try:
@@ -73,7 +81,7 @@ class move_base_fake_node:
         except rospy.ServiceException, e:
             print "Service call failed: %s" %e
 
-
+    # callback for the simple action server goals
     def execute_callback(self, move_base_goal):
         self.goal = move_base_goal.target_pose.pose                                                 # Set the provided goal as the current goal
         rospy.logdebug('[Move Base Fake] Execute Callback: {}'.format(str(self.goal.position)))
