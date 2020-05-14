@@ -209,7 +209,7 @@ class wall_follower_node:
     
 if __name__ == '__main__':
     print "Starting ROS Wall Following module"
-    rospy.init_node('wall_follower_node', anonymous=True, log_level=rospy.INFO)
+    rospy.init_node('wall_follower_node', anonymous=True, log_level=rospy.DEBUG)
     wf = wall_follower_node()
     try:
         rospy.spin()

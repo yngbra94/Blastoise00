@@ -16,7 +16,7 @@ from std_srvs.srv import SetBool, SetBoolResponse
 from movement_starter.srv import SetPoint, SetPointResponse
 
 # Constants
-YAW_PRECISION = math.pi / 90    # +/- 2 degrees in radians
+YAW_PRECISION = math.pi / 45    # +/- 4 degrees in radians
 DIST_PRECISION = 0.1            # metres
 TURN_SPEED = 0.7
 DRIVE_SPEED = 0.25
@@ -49,16 +49,6 @@ class go_to_point_node:
         while not rospy.is_shutdown():
             self.loop()
             r.sleep()
-        self.stopped = True
-        vel_msg = Twist()
-        vel_msg.linear.x = 0
-        vel_msg.linear.y = 0
-        vel_msg.linear.z = 0
-        vel_msg.angular.x = 0
-        vel_msg.angular.y = 0
-        vel_msg.angular.z = 0
-        self.publisher_twist.publish(vel_msg)
-        rospy.logdebug('[Go To Point] Stopped')
 
     
     def loop(self):
@@ -170,7 +160,7 @@ class go_to_point_node:
 
 if __name__ == '__main__':
     print "Starting ROS Go To Point module"
-    rospy.init_node('go_to_point_node', anonymous=True, log_level=rospy.INFO)
+    rospy.init_node('go_to_point_node', anonymous=True, log_level=rospy.DEBUG)
     gtp = go_to_point_node()
     try:
         rospy.spin()
