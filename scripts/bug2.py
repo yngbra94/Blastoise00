@@ -139,7 +139,7 @@ class bug2_node:
     def loop(self):
         """
         Node loop. 
-        Controls the Bug1 node
+        Controls the Bug2 node
         It is able to check if a goal is reached,
         And if the state need to be changed.
         """
@@ -183,7 +183,7 @@ class bug2_node:
             if self.state_counter > STATE_COUNTER_LIMIT and self.distance_to_line(self.wall_follow_start_point, self.target_point, self.position) < DIST_PRECISION:
                
                 # Check if there is nothing to crach in to in front of the robot. 
-                if self.regions['fleft'] > 0.1 or self.regions['fright'] > 0.1 or  self.regions['front'] :
+                if self.regions['fleft'] > 0.2 and self.regions['fright'] > 0.2 and self.regions['front'] > 0.2:
                     # If it has, change wall follower direction and change state to GO TO POINT  
                     currentPos_to_target = self.distance_points(self.position, self.target_point)
                     wallfollowStart_to_target = self.distance_points(self.wall_follow_start_point, self.target_point)
@@ -357,7 +357,7 @@ class bug2_node:
         if dynamic_max > dynamic_min: 
             self.dynamic_region = min(min(scan.ranges [dynamic_min:dynamic_max]) , 3.5)
  
-        # If the region is deviled around 0/360
+        # If the region is around 0/360
         else: 
             self.dynamic_region = min(min(min(scan.ranges [dynamic_max:dynamic_angle_deg+(360-dynamic_angle_deg)]) , min(scan.ranges [0:dynamic_min])), 3.5)
 

@@ -16,7 +16,7 @@ from std_srvs.srv import SetBool, SetBoolResponse
 from movement_starter.srv import SetPoint, SetPointResponse
 
 # Constants
-YAW_PRECISION = math.pi / 45    # +/- 4 degrees in radians
+YAW_PRECISION = math.pi / 90    # +/- 2 degrees in radians
 DIST_PRECISION = 0.1            # metres
 TURN_SPEED = 0.7
 DRIVE_SPEED = 0.25
