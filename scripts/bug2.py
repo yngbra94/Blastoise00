@@ -23,19 +23,19 @@ STATE_COUNTER_LIMIT = 50        # Iterations
 ---------------------------------------------------------------------------------
 This node is a modified bug2 algorithm. It has three states which is GO_TO_POINT, 
 WALL_FOLLOW and DONE. The goal of this node is to receve a target point and move there.
-Then the target point is reached it changes state to DONE and publishes that it is done. 
+Then when the target point is reached it changes state to DONE and publishes that it is done. 
 The original bug2 algorithm tries to move straight to the target point (GO_TO_POINT). 
-If it meets and obstacle it changes to WALL_FOLLOWER. Then it will follow the wall 
+If it meets an obstacle, it changes to WALL_FOLLOWER. Then it will follow the wall 
 until it is at the line between the point where it started following the wall and 
 the target point before it tries to GO_TO_POINT again. However, some issues were found 
 with the original algorithm and was tried to be solved with these modifications. 
 
 Issue 1:    It was found that if the robot is in WALL_FOLLOWER mode when it reaches the 
             target point line and at the same time has a wall in front, if will change to GO_TO_POINT
-            and then automatically back to WALL_FOLLOWER. This is because the algorithm is mad such
+            and then automatically back to WALL_FOLLOWER. This is because the algorithm is made such
             that if there is a wall in front of the robot, if should change to WALL_FOLLOWER. 
 Solution 1: There is added a restriction saying that if the robot is in GO_TO_POINT, 
-            it need to be facing towards the point with a 0.3 radian accuracy. This gives the 
+            it needs to be facing towards the point with a 0.3 radian accuracy. This gives the 
             robot time to turn around before it can go back in to WALL_FOLLOWING. 
             
 Issue 2:    The original algorithm has no way of selecting which wall to follow. 
@@ -43,33 +43,33 @@ Solution 2: To decide which wall to follow the front left and front right laser 
             If the robot has a wall closer to the front left if will use wall follower on the left side. 
             The same works for the right side. 
 
-Issue 3:    Some times the robot start to follow the wall in the wrong direction and brings the robot 
-            further a way from the tartget goal. Also, if the robot then finds the line it will ho back 
-            where it started following the wall and to the same mistake once more.            
+Issue 3:    Sometimes the robot starts to follow the wall in the wrong direction and brings the robot 
+            further away from the target goal. Also, if the robot then finds the line it will go back 
+            where it started following the wall and do the same mistake once more.            
 Solution 3: Now, if the point where the robot finds the line is further away from the target point
-            then where it started wall follower, it will change it's wallfollower direction and 
+            than where it started wall follower, it will change it's wall follower direction and 
             try one more time. 
 
-Issue 4:    The robot will crash in to the wall if it is close to the wall and is sett to GO_TO_POINT. 
-Solution 4: The robot is now not allowed to go to point before it knows that there is nothing to chrash in 
-            to in front of it. 
+Issue 4:    The robot will crash in to the wall if it is close to the wall and is set to GO_TO_POINT. 
+Solution 4: The robot is now not allowed to go to point before it knows that there is nothing to crash into
+            in front of it. 
 
-Issue 5:    The robot needs to point towards the point it is moving to before it can start wall following. 
+Issue 5:    The robot needs to point towards the point it is moving to before it can starts wall following. 
             This makes unnecessary rotations. 
-Solution 5: To solve this issue it was tried to use a dynamic laser scan which allways points towards the target point. 
-            The Idea was that if there is a wall between the target point and the robot, there is no 
-            need rotate the robot before it changes to WALL_FOLLOWER. 
+Solution 5: To solve this issue it was tried to use a dynamic laser scan which always points towards the target point. 
+            The idea was that if there is a wall between the target point and the robot, there is no 
+            need to rotate the robot before it changes to WALL_FOLLOWER. 
             However, this was found to lower the performance of the system. This is most likely due to 
-            the noise generated when the robot allways is able to find a wall for a new point. 
+            the noise generated when the robot is always able to find a wall for a new point. 
             Hence, it is not in use. 
 
 Issue 6:    When the robot gets stuck in a corner or in a square shape, it will hit the line multiple times
-            and return to wall follower. This makes the robot go i circles. Solution 3 should help the robot 
-            to get out of this loop. But, the Solution 2 made the robot allway predicting the best wall to follow. 
+            and return to wall follower. This makes the robot go in circles. Solution 3 should help the robot 
+            to get out of this loop. However, Solution 2 made the robot always predicting the best wall to follow. 
             Hence, it never changed the wall following direction. 
-Solution 6: A counter was added to count if the line was hit more then twice. If so it means that the robot is stuck. 
+Solution 6: A counter was added to count if the line was hit more than twice. If this happens, it means that the robot is stuck. 
             If the robot is stuck, it will not try to predict the best wall to follow but try the other one. 
-            Unfortunately this only works only some of the time.
+            Unfortunately this only works some of the time.
 
 ----------------------------------------------------------------------------------
 
