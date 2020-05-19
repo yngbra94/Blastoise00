@@ -25,11 +25,11 @@ from std_srvs.srv import SetBool, SetBoolResponse
 
 # Constants
 BASE_FRAME =        "base_link"         # Param from the SLAM module
-MAX_SIDE_LIMIT =    0.45                # This furthest distance we 'see' the wall to the side
-MIN_APPROACH_DIST = 0.20                # The closest we want to get to a wall from the front
+MAX_SIDE_LIMIT =    0.50                # This furthest distance we 'see' the wall to the side
+MIN_APPROACH_DIST = 0.30                # The closest we want to get to a wall from the front
 MAX_APPROACH_DIST = 0.50                # The distance we want to start slowing to approach a front wall
 ROBOT_RADIUS =      0.20                # The bounding circle around the robot
-MAX_TRANS_SPEED =   0.5                 # Forward movement
+MAX_TRANS_SPEED =   0.25                # Forward movement
 MAX_TURN_SPEED =    1.4                 # Rotation
 
 class FollowSide(Enum):
@@ -209,7 +209,7 @@ class wall_follower_node:
     
 if __name__ == '__main__':
     print "Starting ROS Wall Following module"
-    rospy.init_node('wall_follower_node', anonymous=True, log_level=rospy.INFO)
+    rospy.init_node('wall_follower_node', anonymous=True, log_level=rospy.DEBUG)
     wf = wall_follower_node()
     try:
         rospy.spin()

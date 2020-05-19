@@ -42,7 +42,7 @@ class move_base_fake_node:
         self.current_goal_started = False       # Has the goal been started (i.e. have we told our Bug algorithm to use this point and start)
         self.current_goal_complete = False      # Has the Bug algorithm told us it completed 
         self.position = None                    # move_base feedback reports the current direction
-        self.bugType = bugType.BUG0             # set the bug type to be used 
+        self.bugType = bugType.BUG2             # set the bug type to be used 
 
         # Service for the Bug algorithm to tell us it is done
         self.bug_done_service = rospy.Service('/move_base_fake/is_bug_done/', SetBool, self.callback_complete)
