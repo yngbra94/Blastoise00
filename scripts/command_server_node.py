@@ -64,21 +64,16 @@ class command_server_node:
             self.previusState=RobotState.RETURNING
             rospy.loginfo("Finished with exploring the maze")
         
-        # If the robot is returning home and is done, the robot has reached home. Start fixing orientation.
+        # If the robot is returning home and is done, the robot has reached home.
         elif data.data == RobotState.DONE.value and self.state == RobotState.RETURNING:
             self.previusState = self.state
-            self.state = RobotState.ORIENTING
+            self.state = RobotState.DONE
             
             #printing that the robot is finished. Added many lines to make it easy to see
             rospy.loginfo("\n \n \n \n \n \n The robot has returned back to home.  \n \n \n \n \n \n")
             rospy.loginfo("\n \n \n \n \n \n The robot has returned back to home.  \n \n \n \n \n \n")
-
-        # If the robot is fixing orientation at home and is done, the robot is finished and should stop.
-        elif data.data == RobotState.DONE.value and self.state == RobotState.ORIENTING:
-            self.previusState = self.state
-            self.state = RobotState.DONE
+          
             
-
     #listens to beacons left and stops exploring when all beacons is found and returns to 
     # start position        
     def callback_beacons(self,beaconsLeft):

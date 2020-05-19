@@ -29,5 +29,4 @@ class RobotState(Enum):
     PAUSED = 'pause'
     EXPLORING = 'exploring'
     RETURNING = 'returning'
-    ORIENTING = 'orienting'
     DONE = 'done'
