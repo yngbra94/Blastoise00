@@ -17,18 +17,20 @@ DEPTH_SCALE = 0.001     # Depth is given in integer values on 1mm
 class image_processing_node:
     def __init__(self):
         self.bridge = CvBridge()
-        self.colour_frame=None
+        self.colour_frame = None
         self.depth_frame = None
+        #self.beacons_colour = rospy.get_param("beacon_colours")
+        #print self.beacons_colour[0][hueMin]
         self.sub_colour_image = rospy.Subscriber('camera/rgb/image_raw/compressed', CompressedImage, self.callback_colour_image)
         self.subscriber_camera_info = rospy.Subscriber('camera/camera_info',CameraInfo,self.callback_camera_info)
         self.subscriber_camera_info = rospy.Subscriber('camera/depth/image_raw',Image,self.callback_depth)
         self.subscriber_odometry = rospy.Subscriber('odom', Odometry ,self.callback_odometry)
+       
         self.beaconsLeft= 10
         r = rospy.Rate(10)
         while not rospy.is_shutdown():
             self.loop()
             r.sleep()
-
 
 
     def loop(self):
@@ -37,125 +39,118 @@ class image_processing_node:
             #cv2.imshow('masked Image', mask)
             cv2.waitKey(2)
 
-    #def callback_colour_image(self , colour_image): 
-     #   rospy.loginfo("[image processing] Received colour image")
-        # Convert to NumPy and OpenCV formats
-      #  colour_np_arr = np.fromstring(colour_image.data , np.uint8)
-       # self.colour_frame = cv2.imdecode(colour_np_arr , cv2.IMREAD_COLOR)
 
     def callback_depth(self, depth_image):
         rospy.loginfo('[image processing] callback depth')
         self.depth_frame=self.bridge.imgmsg_to_cv2(depth_image,desired_encoding = "passthrough")
-    def calculate_centre(self, x,y,w,h):
-        
+
+    def calculate_centre_of_Square(self, x, y, w, h):
+        centre_xdir = (x+w/2)
+        centre_ydir = (y+h/2)
+        return centre_xdir, centre_ydir
 
     def callback_colour_image(self , colour_image): 
         colour_np_arr = np.fromstring(colour_image.data , np.uint8)
-        colour_frame = cv2.imdecode(colour_np_arr , cv2.IMREAD_COLOR)
+        colour_mat = cv2.imdecode(colour_np_arr, cv2.IMREAD_COLOR)
         yellow=False
         red=False
         green=False
         blue=False
 
-        if colour_frame != None:
-            blurred = cv2.GaussianBlur(colour_frame ,(11,11),0)
-            hsv = cv2.cvtColor(blurred,cv2.COLOR_BGR2HSV)
-            #red colour 
-            red_lower = (0,227,108)#new
-            red_upper = (22, 255, 206)
-            # green 
-            green_lower = (57,71,97)#new
-            green_upper = (72, 255, 197)
-            # yellow 
-            yellow_lower = (25,249,128) #new 
-            yellow_upper = (41, 255, 213)
-            # blue 
-            blue_lower = (106,124,81)#new
-            blue_upper = (153, 255, 206)
-
-            mask = cv2.inRange(hsv, red_lower, red_upper)
-            mask = cv2.erode(mask,None,iterations=2)
-            mask = cv2.dilate(mask, None, iterations=2)
-            #red
-            red_contours = cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-            red_contours = imutils.grab_contours(red_contours)
-            if len(red_contours) != 0:
         
-                red=True   
-                largest_contours_red =max(red_contours,key=cv2.contourArea)
+        colour_mat, found_red, red_center_coord = self.get_colour_position(colour_mat, 'red')
+        colour_mat, found_blue, blue_center_coord  = self.get_colour_position(colour_mat, 'blue')
+        colour_mat, found_green, green_center_coord  = self.get_colour_position(colour_mat, 'green')
+        colour_mat, found_yellow, yellow_center_coord  = self.get_colour_position(colour_mat, 'yellow')
+        x_dir_accuracy =30
+            # check colour what color that is found 
+        if found_red and found_green:
+            #check that the center of both color is on the same x value
+            if abs(red_center_coord[0] -green_center_coord[0]) <x_dir_accuracy:
+                #if red is above green 
+                if red_center_coord[1] <green_center_coord[1] :
+                    cv2.putText(colour_mat ,"Red top and green beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                if red_center_coord[1] >green_center_coord[1]:
+                    cv2.putText(colour_mat ,"Green top and red beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+        if found_red and found_yellow: 
+            if abs(red_center_coord[0] -yellow_center_coord[0]) <x_dir_accuracy:
+                if red_center_coord[1] <yellow_center_coord[1]:
+                    cv2.putText(colour_mat ,"Red top and yellow beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                if red_center_coord[1] >yellow_center_coord[1]:
+                    cv2.putText(colour_mat ,"Yellow top and red beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+        if found_red and found_blue: 
+            if abs(red_center_coord[0] -blue_center_coord[0]) <x_dir_accuracy:
+                if red_center_coord[1] <blue_center_coord[1]:
+                    cv2.putText(colour_mat ,"Red top and Blue beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                if red_center_coord[1] >blue_center_coord[1]:
+                    cv2.putText(colour_mat ,"Blue top and red beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+        if found_green and found_blue: 
+            if abs(blue_center_coord[0] -green_center_coord[0]) <x_dir_accuracy:
+                if green_center_coord[1] <blue_center_coord[1]:
+                    cv2.putText(colour_mat ,"Green top and blue beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                if green_center_coord[1] >blue_center_coord[1]:
+                    cv2.putText(colour_mat ,"Blue top and green beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+        if found_green and found_yellow: 
+            if abs(green_center_coord[0] -yellow_center_coord[0]) <x_dir_accuracy:
+                if green_center_coord[1] <yellow_center_coord[1]:
+                    cv2.putText(colour_mat ,"Green top and yellow beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                if green_center_coord[1] >yellow_center_coord[1]:
+                    cv2.putText(colour_mat ,"Yellow top and green beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+        if found_yellow and found_blue: 
+            if abs(yellow_center_coord[0] -blue_center_coord[0]) <x_dir_accuracy:
+                if yellow_center_coord[1] <blue_center_coord[1]:
+                    cv2.putText(colour_mat ,"yellow top and Blue beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                if yellow_center_coord[1] >blue_center_coord[1]:
+                    cv2.putText(colour_mat ,"Blue top and yellow beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
 
-                x,y,w,h =cv2.boundingRect(largest_contours_red)
-                colour_frame  = cv2.rectangle(colour_frame ,(x,y),(x+w,y+h),(0,0,255),2)
-                cv2.putText(colour_frame ,"Red", (x,y), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-            #blue
-            mask = cv2.inRange(hsv, blue_lower, blue_upper)
-            mask = cv2.erode(mask,None,iterations=2)
-            mask = cv2.dilate(mask, None, iterations=2)
+        #save the image to the node 
+        self.colour_frame = colour_mat   
+  
+            
+    
+    # check if the color is found and return the position centre of the color
+    #  
+    def get_colour_position(self, image_frame, color):
+        #Definition of the hsv values 
+      
+        if color == 'red':
+            lower_hsv_limit = (0,227,108)
+            upper_hsv_limit = (22, 255, 206)
+        elif color == 'green':
+            lower_hsv_limit = (57,71,97)
+            upper_hsv_limit = (72, 255, 197)
+        elif color == 'yellow':
+            lower_hsv_limit = (25,249,128) 
+            upper_hsv_limit = (41, 255, 213)
+        elif color == 'blue' :
+            lower_hsv_limit = (106,124,81)
+            upper_hsv_limit = (153, 255, 206)
+        else: 
+            return
+        # romove noise in the image
+        blurred = cv2.GaussianBlur(image_frame ,(11,11),0)
+        hsv = cv2.cvtColor(blurred,cv2.COLOR_BGR2HSV)
+        mask = cv2.inRange(hsv, lower_hsv_limit, upper_hsv_limit)
+        mask = cv2.erode(mask,None,iterations=2)
+        mask = cv2.dilate(mask, None, iterations=2)
+        found_colour =False
+        contours = cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        contours = imutils.grab_contours(contours)
+        centerCoordinate = None
+        # check that the colour is found 
+        if len(contours) != 0:
+            #find the largest cotour of the colour 
+            largest_contours =max(contours,key=cv2.contourArea)
+            found_colour=True
+            x,y,w,h =cv2.boundingRect(largest_contours)
+            centerCoordinate = self.calculate_centre_of_Square(x,y,w,h)
+            image_frame  = cv2.rectangle(image_frame ,(x,y),(x+w,y+h),(0,0,255),2)
+            cv2.putText(image_frame ,color, (x,y), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
 
-            blue_contours = cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-            blue_contours = imutils.grab_contours(blue_contours)
-            if len(blue_contours) ==0:
-                
-                print "blue"
-            else:
-                blue=True   
-                largest_contours_blue =max(blue_contours,key=cv2.contourArea)
 
-                x,y,w,h =cv2.boundingRect(largest_contours_blue)
-                colour_frame  = cv2.rectangle(colour_frame ,(x,y),(x+w,y+h),(0,0,255),2)
-                cv2.putText(colour_frame ,"Blue", (x,y), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                #
-
-            #green
-            mask = cv2.inRange(hsv, green_lower, green_upper)
-            mask = cv2.erode(mask,None,iterations=2)
-            mask = cv2.dilate(mask, None, iterations=2)
-
-            green_contours = cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-            green_contours = imutils.grab_contours(green_contours)
-            if len(green_contours) ==0:
-                print "green"
-            else:
-                green=True   
-                largest_contours_green =max(green_contours,key=cv2.contourArea)
-
-                x,y,w,h =cv2.boundingRect(largest_contours_green)
-                colour_frame  = cv2.rectangle(colour_frame ,(x,y),(x+w,y+h),(0,0,255),2)
-                cv2.putText(colour_frame ,"Green", (x,y), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                #
-
-            #yellow
-            mask = cv2.inRange(hsv, yellow_lower, yellow_upper)
-            mask = cv2.erode(mask,None,iterations=2)
-            mask = cv2.dilate(mask, None, iterations=2)
-
-            yellow_contours = cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-            yellow_contours = imutils.grab_contours(yellow_contours)
-            if len(yellow_contours) ==0:
-                print "yellow"
-            else:
-                yellow=True   
-                largest_contours_yellow =max(yellow_contours,key=cv2.contourArea)
-
-                yellow_x,yellow_y,w,h =cv2.boundingRect(largest_contours_yellow)
-                colour_frame  = cv2.rectangle(colour_frame ,(yellow_x,yellow_y),(yellow_x+w,yellow_y+h),(0,0,255),2)
-                cv2.putText(colour_frame ,"Yellow", (yellow_x,yellow_y), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-            # check colour and position 
-            if red and green: 
-                cv2.putText(colour_frame ,"Red and green beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-            if red and blue: 
-                cv2.putText(colour_frame ,"Red and blue beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-            if blue and yellow: 
-                cv2.putText(colour_frame ,"Blue and yellow beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-            if red and yellow: 
-                cv2.putText(colour_frame ,"Red and yellow beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-            if blue and yellow: 
-                cv2.putText(colour_frame ,"Blue and yellow beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-            self.colour_frame = colour_frame
-            # Display the image
+        return image_frame, found_colour, centerCoordinate
         
-        #def get_color_sequence(self, BeamColor):
-
+     
 
     def callback_camera_info(self,camera_info):
         self.K=np.array(camera_info.K).reshape([3,3])
@@ -163,25 +158,7 @@ class image_processing_node:
     def callback_odometry(self,odometry):
         self.transform_cam_to_world = trans.msg_to_se3(odometry.pose.pose)
 
-    # to convert the image position in to depth info is the code presented in tutorial 3.
-    """
-    def callback_depth(self, data):
-        #print "callback_depth()" # For testing, can be removed
-        try:
-            # Convert image into OpenCV frame and numpy array
-            depth_image = self.bridge.imgmsg_to_cv2(data, desired_encoding="passthrough")
-            depth_array = np.array(depth_image, dtype=np.float32)
 
-            # Find the depth of the centre pixel in metres
-            center_idx = np.array(depth_array.shape) / 2
-            print "center depth: {0}".format(DEPTH_SCALE * depth_array[center_idx[0], center_idx[1]])
-
-            # Display the result
-            cv2.imshow('Depth Image', depth_image)
-            cv2.waitKey(2)
-        except CvBridgeError, e:
-            print e
-    """
 
 if __name__ == '__main__': 
     try:

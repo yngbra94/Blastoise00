@@ -1,5 +1,6 @@
-beacon_colours:
+beacon_colours: [
     { type: blue, hueMin: 118, satMin: 240, valMin: 85, hueMax: 121, satMax: 255, valMax: 228 },
     { type: green, hueMin: 57, satMin: 227, valMin: 94, hueMax: 63, satMax: 255, valMax: 215 },
     { type: red, hueMin: 0, satMin: 237, valMin: 96, hueMax: 5, satMax: 255, valMax: 205 },
-    { type: yellow, hueMin: 27, satMin: 244, valMin: 98, hueMax: 33, satMax: 255, valMax: 212 },
+    { type: yellow, hueMin: 27, satMin: 244, valMin: 98, hueMax: 33, satMax: 255, valMax: 212 }
+]
