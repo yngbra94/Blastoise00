@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="Blastoise00" type="image_processing_node.py" name="image_processing_node" output="screen" />
+</launch>
