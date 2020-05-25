@@ -19,8 +19,7 @@ class image_processing_node:
         self.bridge = CvBridge()
         self.colour_frame = None
         self.depth_frame = None
-        #self.beacons_colour = rospy.get_param("beacon_colours")
-        #print self.beacons_colour[0][hueMin]
+        self.beacons_colour = rospy.get_param("~beacon_colours")
         self.sub_colour_image = rospy.Subscriber('camera/rgb/image_raw/compressed', CompressedImage, self.callback_colour_image)
         self.subscriber_camera_info = rospy.Subscriber('camera/camera_info',CameraInfo,self.callback_camera_info)
         self.subscriber_camera_info = rospy.Subscriber('camera/depth/image_raw',Image,self.callback_depth)
@@ -69,33 +68,33 @@ class image_processing_node:
             if abs(red_center_coord[0] -green_center_coord[0]) <x_dir_accuracy:
                 #if red is above green 
                 if red_center_coord[1] <green_center_coord[1] :
-                    cv2.putText(colour_mat ,"Red top and green beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                    cv2.putText(colour_mat ,"Red top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                 if red_center_coord[1] >green_center_coord[1]:
-                    cv2.putText(colour_mat ,"Green top and red beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                    cv2.putText(colour_mat ,"Green top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
         if found_red and found_yellow: 
             if abs(red_center_coord[0] -yellow_center_coord[0]) <x_dir_accuracy:
                 if red_center_coord[1] <yellow_center_coord[1]:
-                    cv2.putText(colour_mat ,"Red top and yellow beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                    cv2.putText(colour_mat ,"Red top and yellow bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                 if red_center_coord[1] >yellow_center_coord[1]:
-                    cv2.putText(colour_mat ,"Yellow top and red beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                    cv2.putText(colour_mat ,"Yellow top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
         if found_red and found_blue: 
             if abs(red_center_coord[0] -blue_center_coord[0]) <x_dir_accuracy:
                 if red_center_coord[1] <blue_center_coord[1]:
-                    cv2.putText(colour_mat ,"Red top and Blue beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                    cv2.putText(colour_mat ,"Red top and Blue bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                 if red_center_coord[1] >blue_center_coord[1]:
-                    cv2.putText(colour_mat ,"Blue top and red beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                    cv2.putText(colour_mat ,"Blue top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
         if found_green and found_blue: 
             if abs(blue_center_coord[0] -green_center_coord[0]) <x_dir_accuracy:
                 if green_center_coord[1] <blue_center_coord[1]:
-                    cv2.putText(colour_mat ,"Green top and blue beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                    cv2.putText(colour_mat ,"Green top and blue bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                 if green_center_coord[1] >blue_center_coord[1]:
-                    cv2.putText(colour_mat ,"Blue top and green beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                    cv2.putText(colour_mat ,"Blue top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
         if found_green and found_yellow: 
             if abs(green_center_coord[0] -yellow_center_coord[0]) <x_dir_accuracy:
                 if green_center_coord[1] <yellow_center_coord[1]:
-                    cv2.putText(colour_mat ,"Green top and yellow beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                    cv2.putText(colour_mat ,"Green top and yellow bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                 if green_center_coord[1] >yellow_center_coord[1]:
-                    cv2.putText(colour_mat ,"Yellow top and green beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                    cv2.putText(colour_mat ,"Yellow top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
         if found_yellow and found_blue: 
             if abs(yellow_center_coord[0] -blue_center_coord[0]) <x_dir_accuracy:
                 if yellow_center_coord[1] <blue_center_coord[1]:
@@ -112,22 +111,11 @@ class image_processing_node:
     #  
     def get_colour_position(self, image_frame, color):
         #Definition of the hsv values 
-      
-        if color == 'red':
-            lower_hsv_limit = (0,227,108)
-            upper_hsv_limit = (22, 255, 206)
-        elif color == 'green':
-            lower_hsv_limit = (57,71,97)
-            upper_hsv_limit = (72, 255, 197)
-        elif color == 'yellow':
-            lower_hsv_limit = (25,249,128) 
-            upper_hsv_limit = (41, 255, 213)
-        elif color == 'blue' :
-            lower_hsv_limit = (106,124,81)
-            upper_hsv_limit = (153, 255, 206)
-        else: 
-            return
+        lower_hsv_limit = (self.beacons_colour[color]["hueMin"], self.beacons_colour[color]["satMin"],  self.beacons_colour[color]["valMin"])
+        upper_hsv_limit = (self.beacons_colour[color]["hueMax"], self.beacons_colour[color]["satMax"],  self.beacons_colour[color]["valMax"])
+     
         # romove noise in the image
+
         blurred = cv2.GaussianBlur(image_frame ,(11,11),0)
         hsv = cv2.cvtColor(blurred,cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, lower_hsv_limit, upper_hsv_limit)
