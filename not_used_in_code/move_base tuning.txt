@@ -1,9 +1,11 @@
 move_base tuning:
 
+in folder: costmap_common_params_waffle.yaml
 to avoid wall corners:
 	inflation radius
 	cost scaling factor
 
+in folder: dwa_local_planner_params_waffle.yaml
 avoid cutting corners:
  	forward point distance
 
