@@ -22,7 +22,7 @@ class image_processing_node:
         self.beacons_colour = rospy.get_param("~beacon_colours")
         self.sub_colour_image = rospy.Subscriber('camera/rgb/image_raw/compressed', CompressedImage, self.callback_colour_image)
         self.subscriber_camera_info = rospy.Subscriber('camera/camera_info',CameraInfo,self.callback_camera_info)
-        self.subscriber_camera_info = rospy.Subscriber('camera/depth/image_raw',Image,self.callback_depth)
+        self.subscriber_camera_info = rospy.Subscriber('camera/depth/image_raw',Image,self.callback_depth_image)
         self.subscriber_odometry = rospy.Subscriber('odom', Odometry ,self.callback_odometry)
        
         self.beaconsLeft= 10
@@ -38,10 +38,17 @@ class image_processing_node:
             #cv2.imshow('masked Image', mask)
             cv2.waitKey(2)
 
-
-    def callback_depth(self, depth_image):
-        rospy.loginfo('[image processing] callback depth')
-        self.depth_frame=self.bridge.imgmsg_to_cv2(depth_image,desired_encoding = "passthrough")
+    # Callback for a depth image 
+    def callback_depth_image(self , depth_image):
+        """
+        Callback for depth image from camera. 
+        :param depth_image: A depth image from the camera. 
+        :type depth_image: Image
+        """
+        # rospy.loginfo('[Image  Processing] callback_depth')
+        # Convert to NumPy and 
+        depth_frame = self.bridge.imgmsg_to_cv2(depth_image , desired_encoding ="passthrough")
+        self.depth_frame = np.array(depth_frame, dtype=np.float32)
 
     def calculate_centre_of_Square(self, x, y, w, h):
         centre_xdir = (x+w/2)
@@ -146,6 +153,119 @@ class image_processing_node:
     def callback_odometry(self,odometry):
         self.transform_cam_to_world = trans.msg_to_se3(odometry.pose.pose)
 
+
+
+    ### Callbacks. 
+
+    # # Callback for color image. 
+    # def callback_colour_image(self, colour_image):
+    #     """
+    #     Callback for colour image from camera
+    #     :param colour_image: A compressed color image. 
+    #     :type colour_image: CompressedImage
+    #     """
+    #     rospy.loginfo('[Image  Processing] callback_colour')
+    #     # Convert to NumPy and 
+    #     colour_np_arr = np.fromstring(colour_image.data, np.uint8)
+    #     self.colour_frame = cv2.imdecode(colour_np_arr, cv2.IMREAD_COLOR)
+
+        
+
+
+
+    ### Color detection methods. 
+
+    # Filter a color image with the provided HSV colour spectrum
+    def HSV_color_mask(self, color_image, HSV_lower_values, HSV_upper_values):
+        """
+        Filter a color image with the provided HSV colour spectrum to generate a binary image 
+        :param color_image: A color image 
+        :type color_image: CompressedImage
+        :param HSV_lower_values: The H, S and V lower range values (H, S, V). e.g. (0, 160, 99)
+        :param HSV_upper_values: The H, S and V upper range values (H, S, V). e.g. (3, 255, 255)
+        :return a binary image with the filtered color is white
+        """
+        # Blur image
+        blurred = cv2.GaussianBlur(self.colour_frame, (11, 11), 0)
+
+        # Convert to HSV 
+        hsv_image = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV) 
+        # Filter the image such that only the red is left
+        filtered_image = cv2.inRange(hsv_image, HSV_lower_values, HSV_upper_values)
+        # Use closing to reomve noise in the image 
+        filtered_image = cv2.erode(filtered_image, None, iterations = 2)
+        filtered_image = cv2.dilate(filtered_image, None, iterations = 2)
+        return filtered_image
+
+    # Adding a boundingbox ta an image from a given mask. 
+    def add_boudingbox_to_image(self, mask, image):
+        """
+        Draw a bounding bounding box around the mask on the image
+        :param mask: Binary image of an object
+        :param image: image to be drawn on. 
+        """
+        # Adding a contour to the image
+        contours = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours = imutils.grab_contours(contours)
+
+
+        if len(contours) != 0: 
+            largest_contour = max(contours, key=cv2.contourArea)
+            x, y , w, h = cv2.boundingRect(largest_contour)
+            colour_frame  = cv2.rectangle(image ,(x,y),(x+w,y+h),(0,0,255),2)
+            return colour_frame
+        
+        else: 
+            return image
+
+    ### Depth detection mathods. 
+
+    # 
+    def find_dept_at_pix(self, depth_image,  point, mask_size):
+        """
+        Used to find the median depth around a single pixel with given mask 
+        :param depth_image: Depth image. 
+        :type depth_image: np.float32
+        :param point: The x and y pixel coordinates in the image
+        :type point: Point (Internal Struct)
+        :param mask_size: the square size in pixel number (mask x and y)
+        :type mask_size: int
+        """
+
+        DEPTH_SCALE = 0.001     # Depth is given in integer values on 1mm
+        x = point.x - int(mask_size/2) 
+        y = point.y - int(mask_size/2)
+        xSign = 1
+        ySign = 1
+        rows,cols = depth_image.shape
+        # if the mask hits the image border. 
+        if (x < 0): 
+            x = point.x
+        elif (point.x + int(mask_size/2) > rows): 
+            x = point.x
+            xSign = -1
+        if (y < 0):
+            y = point.y 
+        elif (point.y + int(mask_size/2) > cols):
+            y = point.y 
+            ySign = -1
+
+        # If the pixel value is in range
+        if not np.isnan(depth_image[x, y]):
+
+            depth_vals = []
+            for i in range(mask_size):
+                for j in range(mask_size):
+                    depth_vals.append(depth_image[x + xSign*i, y + ySign*j])
+            
+            avg_depth = np.median(depth_vals) * DEPTH_SCALE
+
+            return avg_depth
+
+        # If the pixel depth is out of range return -1 indicating out of range. 
+
+        else: 
+            return -1
 
 
 if __name__ == '__main__': 
