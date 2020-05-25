@@ -12,7 +12,10 @@ from cv_bridge import CvBridge, CvBridgeError
 
 # Constants
 DEPTH_SCALE = 0.001     # Depth is given in integer values on 1mm
-
+class Point():
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
 
 class image_processing_node:
     def __init__(self):
@@ -28,15 +31,77 @@ class image_processing_node:
         self.beaconsLeft= 10
         r = rospy.Rate(10)
         while not rospy.is_shutdown():
-            self.loop()
+            if self.colour_frame != None and self.depth_frame !=None:
+                self.loop()
             r.sleep()
 
 
     def loop(self):
-        if self.colour_frame != None:
-            cv2.imshow ('Colour Image', self.colour_frame )
-            #cv2.imshow('masked Image', mask)
-            cv2.waitKey(2)
+        colour_mat = self.colour_frame
+        depth_mat = self.depth_frame
+        yellow=False
+        red=False
+        green=False
+        blue=False
+        beaconPoints = []
+        colour_mat, found_red, red_centre_point = self.get_colour_position(colour_mat, 'red')
+        colour_mat, found_blue, blue_centre_point  = self.get_colour_position(colour_mat, 'blue')
+        colour_mat, found_green, green_centre_point  = self.get_colour_position(colour_mat, 'green')
+        colour_mat, found_yellow, yellow_centre_point  = self.get_colour_position(colour_mat, 'yellow')
+        x_dir_accuracy =30
+            # check colour what color that is found 
+        if found_red and found_green:
+            #check that the center of both color is on the same x value
+            if abs(red_centre_point.x -green_centre_point.x) <x_dir_accuracy:
+                #if red is above green 
+                if red_centre_point.y <green_centre_point.y :
+                    cv2.putText(colour_mat ,"Red top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                if red_centre_point.y >green_centre_point.y:
+                    cv2.putText(colour_mat ,"Green top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                beaconPoints.append(red_centre_point)  
+        if found_red and found_yellow: 
+            if abs(red_centre_point.x -yellow_centre_point.x) <x_dir_accuracy:
+                if red_centre_point.y <yellow_centre_point.y:
+                    cv2.putText(colour_mat ,"Red top and yellow bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                if red_centre_point.y >yellow_centre_point.y:
+                    cv2.putText(colour_mat ,"Yellow top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                beaconPoints.append(red_centre_point) 
+        if found_red and found_blue: 
+            if abs(red_centre_point.x -blue_centre_point.x) <x_dir_accuracy:
+                if red_centre_point.y <blue_centre_point.y:
+                    cv2.putText(colour_mat ,"Red top and Blue bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                if red_centre_point.y >blue_centre_point.y:
+                    cv2.putText(colour_mat ,"Blue top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                beaconPoints.append(red_centre_point) 
+        if found_green and found_blue: 
+            if abs(blue_centre_point.x -green_centre_point.x) <x_dir_accuracy:
+                if green_centre_point.y <blue_centre_point.y:
+                    cv2.putText(colour_mat ,"Green top and blue bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                if green_centre_point.y >blue_centre_point.y:
+                    cv2.putText(colour_mat ,"Blue top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                beaconPoints.append(green_centre_point) 
+        if found_green and found_yellow: 
+            if abs(green_centre_point.x -yellow_centre_point.x) <x_dir_accuracy:
+                if green_centre_point.y <yellow_centre_point.y:
+                    cv2.putText(colour_mat ,"Green top and yellow bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                if green_centre_point.y >yellow_centre_point.y:
+                    cv2.putText(colour_mat ,"Yellow top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                beaconPoints.append(green_centre_point) 
+        if found_yellow and found_blue: 
+            if abs(yellow_centre_point.x -blue_centre_point.x) <x_dir_accuracy:
+                if yellow_centre_point.y <blue_centre_point.y:
+                    cv2.putText(colour_mat ,"yellow top and Blue beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                if yellow_centre_point.y >blue_centre_point.y:
+                    cv2.putText(colour_mat ,"Blue top and yellow beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                beaconPoints.append(yellow_centre_point)
+        if  not beaconPoints :
+            for x in beaconPoints:
+                print self.find_dept_at_pix(depth_mat, x, 5) 
+            
+       
+        cv2.imshow('Colour Image', colour_mat )
+        #cv2.imshow('masked Image', mask)
+        cv2.waitKey(2)
 
     # Callback for a depth image 
     def callback_depth_image(self , depth_image):
@@ -51,68 +116,17 @@ class image_processing_node:
         self.depth_frame = np.array(depth_frame, dtype=np.float32)
 
     def calculate_centre_of_Square(self, x, y, w, h):
-        centre_xdir = (x+w/2)
-        centre_ydir = (y+h/2)
-        return centre_xdir, centre_ydir
+        centrePoint  = Point((x+w/2), (y+h/2))
+    
+        return centrePoint
 
     def callback_colour_image(self , colour_image): 
         colour_np_arr = np.fromstring(colour_image.data , np.uint8)
-        colour_mat = cv2.imdecode(colour_np_arr, cv2.IMREAD_COLOR)
-        yellow=False
-        red=False
-        green=False
-        blue=False
+        self.colour_frame  = cv2.imdecode(colour_np_arr, cv2.IMREAD_COLOR)
 
-        
-        colour_mat, found_red, red_center_coord = self.get_colour_position(colour_mat, 'red')
-        colour_mat, found_blue, blue_center_coord  = self.get_colour_position(colour_mat, 'blue')
-        colour_mat, found_green, green_center_coord  = self.get_colour_position(colour_mat, 'green')
-        colour_mat, found_yellow, yellow_center_coord  = self.get_colour_position(colour_mat, 'yellow')
-        x_dir_accuracy =30
-            # check colour what color that is found 
-        if found_red and found_green:
-            #check that the center of both color is on the same x value
-            if abs(red_center_coord[0] -green_center_coord[0]) <x_dir_accuracy:
-                #if red is above green 
-                if red_center_coord[1] <green_center_coord[1] :
-                    cv2.putText(colour_mat ,"Red top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                if red_center_coord[1] >green_center_coord[1]:
-                    cv2.putText(colour_mat ,"Green top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-        if found_red and found_yellow: 
-            if abs(red_center_coord[0] -yellow_center_coord[0]) <x_dir_accuracy:
-                if red_center_coord[1] <yellow_center_coord[1]:
-                    cv2.putText(colour_mat ,"Red top and yellow bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                if red_center_coord[1] >yellow_center_coord[1]:
-                    cv2.putText(colour_mat ,"Yellow top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-        if found_red and found_blue: 
-            if abs(red_center_coord[0] -blue_center_coord[0]) <x_dir_accuracy:
-                if red_center_coord[1] <blue_center_coord[1]:
-                    cv2.putText(colour_mat ,"Red top and Blue bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                if red_center_coord[1] >blue_center_coord[1]:
-                    cv2.putText(colour_mat ,"Blue top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-        if found_green and found_blue: 
-            if abs(blue_center_coord[0] -green_center_coord[0]) <x_dir_accuracy:
-                if green_center_coord[1] <blue_center_coord[1]:
-                    cv2.putText(colour_mat ,"Green top and blue bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                if green_center_coord[1] >blue_center_coord[1]:
-                    cv2.putText(colour_mat ,"Blue top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-        if found_green and found_yellow: 
-            if abs(green_center_coord[0] -yellow_center_coord[0]) <x_dir_accuracy:
-                if green_center_coord[1] <yellow_center_coord[1]:
-                    cv2.putText(colour_mat ,"Green top and yellow bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                if green_center_coord[1] >yellow_center_coord[1]:
-                    cv2.putText(colour_mat ,"Yellow top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-        if found_yellow and found_blue: 
-            if abs(yellow_center_coord[0] -blue_center_coord[0]) <x_dir_accuracy:
-                if yellow_center_coord[1] <blue_center_coord[1]:
-                    cv2.putText(colour_mat ,"yellow top and Blue beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                if yellow_center_coord[1] >blue_center_coord[1]:
-                    cv2.putText(colour_mat ,"Blue top and yellow beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-
-        #save the image to the node 
-        self.colour_frame = colour_mat   
+     
   
-            
+         
     
     # check if the color is found and return the position centre of the color
     #  
@@ -131,19 +145,19 @@ class image_processing_node:
         found_colour =False
         contours = cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
         contours = imutils.grab_contours(contours)
-        centerCoordinate = None
+        centerPoint = None
         # check that the colour is found 
         if len(contours) != 0:
             #find the largest cotour of the colour 
             largest_contours =max(contours,key=cv2.contourArea)
             found_colour=True
             x,y,w,h =cv2.boundingRect(largest_contours)
-            centerCoordinate = self.calculate_centre_of_Square(x,y,w,h)
+            centerPoint = self.calculate_centre_of_Square(x,y,w,h)
             image_frame  = cv2.rectangle(image_frame ,(x,y),(x+w,y+h),(0,0,255),2)
             cv2.putText(image_frame ,color, (x,y), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
 
 
-        return image_frame, found_colour, centerCoordinate
+        return image_frame, found_colour, centerPoint
         
      
 
@@ -153,23 +167,6 @@ class image_processing_node:
     def callback_odometry(self,odometry):
         self.transform_cam_to_world = trans.msg_to_se3(odometry.pose.pose)
 
-
-
-    ### Callbacks. 
-
-    # # Callback for color image. 
-    # def callback_colour_image(self, colour_image):
-    #     """
-    #     Callback for colour image from camera
-    #     :param colour_image: A compressed color image. 
-    #     :type colour_image: CompressedImage
-    #     """
-    #     rospy.loginfo('[Image  Processing] callback_colour')
-    #     # Convert to NumPy and 
-    #     colour_np_arr = np.fromstring(colour_image.data, np.uint8)
-    #     self.colour_frame = cv2.imdecode(colour_np_arr, cv2.IMREAD_COLOR)
-
-        
 
 
 
