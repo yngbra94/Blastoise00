@@ -29,7 +29,7 @@ class image_processing_node:
         self.subscriber_odometry = rospy.Subscriber('odom', Odometry ,self.callback_odometry)
        
         self.beaconsLeft= 10
-        r = rospy.Rate(10)
+        r = rospy.Rate(1)
         while not rospy.is_shutdown():
             if self.colour_frame != None and self.depth_frame !=None:
                 self.loop()
@@ -37,6 +37,7 @@ class image_processing_node:
 
 
     def loop(self):
+        #copy the newest mat, this is needed because the callbacks run quicker then the loop. 
         colour_mat = self.colour_frame
         depth_mat = self.depth_frame
         yellow=False
@@ -94,9 +95,12 @@ class image_processing_node:
                 if yellow_centre_point.y >blue_centre_point.y:
                     cv2.putText(colour_mat ,"Blue top and yellow beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                 beaconPoints.append(yellow_centre_point)
-        if  not beaconPoints :
-            for x in beaconPoints:
-                print self.find_dept_at_pix(depth_mat, x, 5) 
+
+        #check that a beacon is found 
+        if  len(beaconPoints) >0 :
+            #for all beacons find the depth
+            for i in beaconPoints:
+                print self.find_dept_at_pix(depth_mat, i, 5) 
             
        
         cv2.imshow('Colour Image', colour_mat )
@@ -218,7 +222,7 @@ class image_processing_node:
     ### Depth detection mathods. 
 
     # 
-    def find_dept_at_pix(self, depth_image,  point, mask_size):
+    def find_dept_at_pix(self, depth_image,  pointwh, mask_size):
         """
         Used to find the median depth around a single pixel with given mask 
         :param depth_image: Depth image. 
@@ -228,7 +232,8 @@ class image_processing_node:
         :param mask_size: the square size in pixel number (mask x and y)
         :type mask_size: int
         """
-
+        #change the direction and x and y as opencv uses (x,y) and array uses (y,x)
+        point = Point(pointwh.y,pointwh.x)
         DEPTH_SCALE = 0.001     # Depth is given in integer values on 1mm
         x = point.x - int(mask_size/2) 
         y = point.y - int(mask_size/2)
