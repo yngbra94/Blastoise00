@@ -2,10 +2,12 @@ obstacle_range: 3.0
 raytrace_range: 3.5
 
 footprint: [[-0.205, -0.155], [-0.205, 0.155], [0.077, 0.155], [0.077, -0.155]]
-#robot_radius: 0.17
+robot_radius: 2.60 #default = not enabled
 
-inflation_radius: 1.5 # controls how far away the zero cost point is from obstacle
-cost_scaling_factor: 1.2 # set higher to make curve more steep
+inflation_radius: 1.8 #best param = 2.5 #1.85 #1.25 works well #default = 1.5
+cost_scaling_factor: 0.5 #2.58 #2.28 #default = 1.2
+#inflation_radius: 1.5 # controls how far away the zero cost point is from obstacle
+#cost_scaling_factor: 1.2 # set higher to make curve more steep
 
 map_type: costmap
 observation_sources: scan
