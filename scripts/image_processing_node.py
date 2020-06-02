@@ -7,12 +7,17 @@ import numpy as np
 import imutils
 from sensor_msgs.msg import Image, CompressedImage, CameraInfo
 from nav_msgs.msg import Odometry
+from geometry_msgs.msg import PoseStamped, Pose, Vector3, Point
 import transformations as trans
 from cv_bridge import CvBridge, CvBridgeError
+from visualization_msgs.msg import Marker, MarkerArray
+from tf.transformations import quaternion_matrix
+import tf
+
 
 # Constants
-DEPTH_SCALE = 0.001     # Depth is given in integer values on 1mm
-class Point():
+DEPTH_SCALE = 1     # Depth is given in integer values on 1mm
+class XYPoint():
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -22,14 +27,17 @@ class image_processing_node:
         self.bridge = CvBridge()
         self.colour_frame = None
         self.depth_frame = None
+        self.K = None
+        self.marker_array = MarkerArray()
         self.beacons_colour = rospy.get_param("~beacon_colours")
         self.sub_colour_image = rospy.Subscriber('camera/rgb/image_raw/compressed', CompressedImage, self.callback_colour_image)
-        self.subscriber_camera_info = rospy.Subscriber('camera/camera_info',CameraInfo,self.callback_camera_info)
+        self.subscriber_camera_info = rospy.Subscriber('camera/rgb/camera_info',CameraInfo,self.callback_camera_info)
         self.subscriber_camera_info = rospy.Subscriber('camera/depth/image_raw',Image,self.callback_depth_image)
         self.subscriber_odometry = rospy.Subscriber('odom', Odometry ,self.callback_odometry)
-       
+        self.tflistener = tf.TransformListener()
+        self.publisher_markers = rospy.Publisher('markers/', MarkerArray, queue_size =1)
         self.beaconsLeft= 10
-        r = rospy.Rate(1)
+        r = rospy.Rate(10)
         while not rospy.is_shutdown():
             if self.colour_frame != None and self.depth_frame !=None:
                 self.loop()
@@ -37,9 +45,11 @@ class image_processing_node:
 
 
     def loop(self):
+        self.get_base_to_camera_Transform()
         #copy the newest mat, this is needed because the callbacks run quicker then the loop. 
         colour_mat = self.colour_frame
         depth_mat = self.depth_frame
+        odom_transform = self.transform_cam_to_world
         yellow=False
         red=False
         green=False
@@ -101,11 +111,63 @@ class image_processing_node:
             #for all beacons find the depth
             for i in beaconPoints:
                 print self.find_dept_at_pix(depth_mat, i, 5) 
+                if self.K == None or self.transform_cam_to_world == None or depth_mat == None:
+                    print "missing K, transform or depthmap"
+                    return
+                x = i.x
+                y = i.y 
+                
+                
+                rob3cam= quaternion_matrix([0.000, 0.000, 0.000, 1.000])
+               
+                rob3cam[0][3] =-0.069
+                rob3cam[0][3] =-0.047
+                rob3cam[0][3] =0.117
+              
+                #= np.array([np.array([0, -1, 0, 0.069]),np.array([0, 0, 1, (-0.065+0.018)]),np.array([-1, 0, 0, (0.013+0.094)]),np.array([0, 0, 0, 1])])
+                #print rob3cam
+
+                depth = DEPTH_SCALE*self.find_dept_at_pix(depth_mat, i, 5) 
+                p_h = np.array([[x],[y],[1]])
+                p3d = depth*np.matmul( np.linalg.inv(self.K), p_h)
+                p3d_h = np.array([[p3d[0][0]], [p3d[1][0]], [p3d[2][0]],[1]])
+                p3d_c_h = np.matmul( np.linalg.inv(rob3cam), p3d_h)
+                p3d_w_h = np.matmul(np.linalg.inv(odom_transform ), p3d_c_h)
+                p3d_w = np.array([[p3d_w_h[0][0]/ p3d_w_h[3][0]], [p3d_w_h[1][0]/p3d_w_h[3][0]], [p3d_w_h[2][0]/p3d_w_h[3][0]]])
+               # print p3d_w
+               # print odom_transform
+
+             
+
+               
+              
+
+
+                pose = Pose()
+                pose.position.x = p3d_w[0][0] 
+                pose.position.y = p3d_w[1][0] 
+                pose.position.z = p3d_w[2][0] 
+                marker = Marker()
+                marker.header.seq = len(self.marker_array.markers) + 1
+                marker.header.frame_id ='odom'
+                marker.header.stamp = rospy.Time.now()
+                marker.id = len(self.marker_array.markers) + 1
+                marker.pose = pose
+                marker.scale = Vector3(0.1, 0.1, 0.1)
+                marker.color.r = 0.0
+                marker.color.g = 1.0
+                marker.color.b = 0.0
+                marker.color.a = 1.0
+                self.marker_array.markers.append(marker)
+                self.publisher_markers.publish(self.marker_array)
+
+     
+        
             
        
-        cv2.imshow('Colour Image', colour_mat )
+        #cv2.imshow('Colour Image', colour_mat )
         #cv2.imshow('masked Image', mask)
-        cv2.waitKey(2)
+        #cv2.waitKey(2)
 
     # Callback for a depth image 
     def callback_depth_image(self , depth_image):
@@ -120,7 +182,7 @@ class image_processing_node:
         self.depth_frame = np.array(depth_frame, dtype=np.float32)
 
     def calculate_centre_of_Square(self, x, y, w, h):
-        centrePoint  = Point((x+w/2), (y+h/2))
+        centrePoint  = XYPoint((x+w/2), (y+h/2))
     
         return centrePoint
 
@@ -170,8 +232,40 @@ class image_processing_node:
 
     def callback_odometry(self,odometry):
         self.transform_cam_to_world = trans.msg_to_se3(odometry.pose.pose)
+        #print odometry.pose.pose
+
+    def get_base_to_camera_Transform(self):
+        try:
+            (bf_bl_trans,bf_bl_rot) = self.tflistener.lookupTransform('base_footprint', 'base_link', rospy.Time(0))
+            (bl_cf_trans,bl_cf_rot) = self.tflistener.lookupTransform('base_link', 'camera_link', rospy.Time(0))
+            (cl_cr_trans,cl_cr_rot) = self.tflistener.lookupTransform('camera_link', 'camera_rgb_optical_frame"', rospy.Time(0))
+            """
+            bf_bl_t = quaternion_matrix(bf_bl_rot) 
+            bf_bl_t[0][3] =bf_bl_trans[0]
+            bf_bl_t[1][3] =bf_bl_trans[1]
+            bf_bl_t[2][3] =bf_bl_trans[2]
+            bl_cf_t = quaternion_matrix(bl_cf_rot) 
+            bl_cf_t[0][3] =bl_cf_trans[0]
+            bl_cf_t[1][3] =bl_cf_trans[1]
+            bl_cf_t[2][3] =bl_cf_trans[2]
+            cl_cr_t = quaternion_matrix(cl_cr_rot) 
+            cl_cr_t[0][3] =cl_cr_trans[0]
+            cl_cr_t[1][3] =cl_cr_trans[1]
+            cl_cr_t[2][3] =cl_cr_trans[2]
+            bf_cf_t = np.matmul( bf_bl_t, bl_cf_t)
+            bf_cr_t = np.matmul( bf_cf_t, cl_cr_t)
 
 
+
+            print bf_cr_t
+            """
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            print "error"
+        
+       # baseTlink= quaternion_matrix([0.000, 0.000, 0.000, 1.000])       
+        #rob3cam[0][3] =0
+        #rob3cam[0][3] =0
+        #rob3cam[0][3] =0.01
 
 
     ### Color detection methods. 
@@ -228,13 +322,13 @@ class image_processing_node:
         :param depth_image: Depth image. 
         :type depth_image: np.float32
         :param point: The x and y pixel coordinates in the image
-        :type point: Point (Internal Struct)
+        :type point: XYPoint (Internal Struct)
         :param mask_size: the square size in pixel number (mask x and y)
         :type mask_size: int
         """
         #change the direction and x and y as opencv uses (x,y) and array uses (y,x)
-        point = Point(pointwh.y,pointwh.x)
-        DEPTH_SCALE = 0.001     # Depth is given in integer values on 1mm
+        point = XYPoint(pointwh.y,pointwh.x)
+       
         x = point.x - int(mask_size/2) 
         y = point.y - int(mask_size/2)
         xSign = 1
