@@ -31,10 +31,17 @@ DWAPlannerROS:
   controller_frequency: 10.0
 
 # Trajectory Scoring Parameters
-  path_distance_bias: 32.0
-  goal_distance_bias: 20.0
-  occdist_scale: 0.02
-  forward_point_distance: 0.425
+  path_distance_bias: 32.0 #default = 32.0 
+  goal_distance_bias: 40.0 #68.0 #default = 20.0
+  occdist_scale: 0.015 #0.03 works well #default = 0.02
+  forward_point_distance: 0.115 #best = 0.075 #0.125 #default = 0.325
+
+  # Added bias for forward movement because camera is pointing forward (did not seem to have an effect)
+  #prefer_forward_cost_function: 0.0 
+  #heading_lookahead: 1.0
+  #heading_scoring: true
+  #heading_scoring_timestep: 0.8
+
   stop_time_buffer: 0.2
   scaling_speed: 0.25
   max_scaling_factor: 0.2
