@@ -45,7 +45,6 @@ class image_processing_node:
 
 
     def loop(self):
-        self.get_base_to_camera_Transform()
         #copy the newest mat, this is needed because the callbacks run quicker then the loop. 
         colour_mat = self.colour_frame
         depth_mat = self.depth_frame
@@ -109,50 +108,18 @@ class image_processing_node:
         #check that a beacon is found 
         if  len(beaconPoints) >0 :
             #for all beacons find the depth
-            for i in beaconPoints:
-                print self.find_dept_at_pix(depth_mat, i, 5) 
-                if self.K == None or self.transform_cam_to_world == None or depth_mat == None:
-                    print "missing K, transform or depthmap"
-                    return
-                x = i.x
-                y = i.y 
-                
-                
-                rob3cam= quaternion_matrix([0.000, 0.000, 0.000, 1.000])
-               
-                rob3cam[0][3] =-0.069
-                rob3cam[0][3] =-0.047
-                rob3cam[0][3] =0.117
-              
-                #= np.array([np.array([0, -1, 0, 0.069]),np.array([0, 0, 1, (-0.065+0.018)]),np.array([-1, 0, 0, (0.013+0.094)]),np.array([0, 0, 0, 1])])
-                #print rob3cam
-
-                depth = DEPTH_SCALE*self.find_dept_at_pix(depth_mat, i, 5) 
-                p_h = np.array([[x],[y],[1]])
-                p3d = depth*np.matmul( np.linalg.inv(self.K), p_h)
-                p3d_h = np.array([[p3d[0][0]], [p3d[1][0]], [p3d[2][0]],[1]])
-                p3d_c_h = np.matmul( np.linalg.inv(rob3cam), p3d_h)
-                p3d_w_h = np.matmul(np.linalg.inv(odom_transform ), p3d_c_h)
-                p3d_w = np.array([[p3d_w_h[0][0]/ p3d_w_h[3][0]], [p3d_w_h[1][0]/p3d_w_h[3][0]], [p3d_w_h[2][0]/p3d_w_h[3][0]]])
-               # print p3d_w
-               # print odom_transform
-
+            for i in beaconPoints:   
+                depth = self.find_dept_at_pix(depth_mat, i, 5)
              
-
+                beacon_location = self.get_beacon_location(depth, i , odom_transform)
                
-              
-
-
-                pose = Pose()
-                pose.position.x = p3d_w[0][0] 
-                pose.position.y = p3d_w[1][0] 
-                pose.position.z = p3d_w[2][0] 
+               
                 marker = Marker()
                 marker.header.seq = len(self.marker_array.markers) + 1
                 marker.header.frame_id ='odom'
                 marker.header.stamp = rospy.Time.now()
                 marker.id = len(self.marker_array.markers) + 1
-                marker.pose = pose
+                marker.pose = beacon_location
                 marker.scale = Vector3(0.1, 0.1, 0.1)
                 marker.color.r = 0.0
                 marker.color.g = 1.0
@@ -231,42 +198,19 @@ class image_processing_node:
         self.K=np.array(camera_info.K).reshape([3,3])
 
     def callback_odometry(self,odometry):
-        self.transform_cam_to_world = trans.msg_to_se3(odometry.pose.pose)
-        #print odometry.pose.pose
+        self.pose = odometry.pose.pose
+        rob3cam = np.array([np.array([0, -1, 0, 0.069]),np.array([0, 0, 1, -0.047]),np.array([1, 0, 0, 0.117]),np.array([0, 0, 0, 1])])
 
-    def get_base_to_camera_Transform(self):
-        try:
-            (bf_bl_trans,bf_bl_rot) = self.tflistener.lookupTransform('base_footprint', 'base_link', rospy.Time(0))
-            (bl_cf_trans,bl_cf_rot) = self.tflistener.lookupTransform('base_link', 'camera_link', rospy.Time(0))
-            (cl_cr_trans,cl_cr_rot) = self.tflistener.lookupTransform('camera_link', 'camera_rgb_optical_frame"', rospy.Time(0))
-            """
-            bf_bl_t = quaternion_matrix(bf_bl_rot) 
-            bf_bl_t[0][3] =bf_bl_trans[0]
-            bf_bl_t[1][3] =bf_bl_trans[1]
-            bf_bl_t[2][3] =bf_bl_trans[2]
-            bl_cf_t = quaternion_matrix(bl_cf_rot) 
-            bl_cf_t[0][3] =bl_cf_trans[0]
-            bl_cf_t[1][3] =bl_cf_trans[1]
-            bl_cf_t[2][3] =bl_cf_trans[2]
-            cl_cr_t = quaternion_matrix(cl_cr_rot) 
-            cl_cr_t[0][3] =cl_cr_trans[0]
-            cl_cr_t[1][3] =cl_cr_trans[1]
-            cl_cr_t[2][3] =cl_cr_trans[2]
-            bf_cf_t = np.matmul( bf_bl_t, bl_cf_t)
-            bf_cr_t = np.matmul( bf_cf_t, cl_cr_t)
+        cam2world =Pose()
+        cam2world.position.x = 0.069
+        cam2world.position.y = -0.047
+        cam2world.position.z = 0.117
+        cam2world.orientation.w = 1
 
+        #self.transform_cam_to_world = trans.msg_to_se3(odometry.pose.pose)
+        #self.transform_cam_to_world = np.matmul(trans.msg_to_se3(odometry.pose.pose),rob3cam)
 
-
-            print bf_cr_t
-            """
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-            print "error"
-        
-       # baseTlink= quaternion_matrix([0.000, 0.000, 0.000, 1.000])       
-        #rob3cam[0][3] =0
-        #rob3cam[0][3] =0
-        #rob3cam[0][3] =0.01
-
+        self.transform_cam_to_world = np.matmul(trans.msg_to_se3(odometry.pose.pose),rob3cam)
 
     ### Color detection methods. 
 
@@ -363,6 +307,48 @@ class image_processing_node:
         else: 
             return -1
 
+
+        # get beacon location. 
+    def get_beacon_location(self, depth, pix_pos, Tcam_world):
+        if self.K == None:
+            rospy.loginfo("K missing")
+            return
+        if  self.transform_cam_to_world  == None: 
+            rospy.loginfo("Camera trans missing")
+            return
+        if self.depth_frame  == None:
+            rospy.loginfo(" depth frame missing")
+            return
+
+        # set pixel position 
+        y = pix_pos.x
+        x = pix_pos.y
+
+
+        p_h = np.array ([[x], [y], [1]])
+        
+        p3d = depth * np.matmul(np.linalg.inv(self.K), p_h)
+        p3d_h = np.array ([[ p3d [0][0]] , [p3d [1][0]] , [p3d [2][0]] ,  [1]])
+        p3d_w_h = np.matmul(Tcam_world, p3d_h)
+        p3d_w = np.array ([[ p3d_w_h [0][0]/ p3d_w_h [3][0]] , [p3d_w_h [1][0]/ p3d_w_h [3][0]] , [p3d_w_h [2][0]/ p3d_w_h [3][0]]]) 
+
+        beacon_pose = Pose()
+        beacon_pose.position.x = p3d_w[1] #+ self.pose.position.x
+        beacon_pose.position.y = -p3d_w[0] #+ self.pose.position.y 
+
+        print("K: \n{}".format(self.K))
+        print("K-1: \n{}".format(np.linalg.inv(self.K)))
+        print("T: \n{}".format(self.transform_cam_to_world))
+        print("T-1: \n{}".format(np.linalg.inv(self.transform_cam_to_world)))
+        print(" K-1 * [x y 1]: \n{}".format(np.matmul(np.linalg.inv(self.K), p_h)))
+        print("P_h \n{}".format(p_h))
+        print("Pcam: \n{}".format(p3d_h))
+        print ("sPw pos: \n{}".format(p3d_w))
+        print("Robot Pos: \n{}".format(self.pose.position))
+        print ("Beacon pos: \n{}".format(beacon_pose.position))
+
+
+        return beacon_pose
 
 if __name__ == '__main__': 
     try:
