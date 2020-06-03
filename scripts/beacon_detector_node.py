@@ -26,7 +26,7 @@ class XYPoint():
 class beacon_detector_node:
     def __init__(self):
         #duration for how loong the robot will stop to find the correct position of the beacon 
-        self.wait_for_sec = 2 
+        self.wait_for_sec = 3 
         self.bridge = CvBridge()
         self.colour_frame = None
         self.depth_frame = None
@@ -63,7 +63,7 @@ class beacon_detector_node:
         colour_mat, found_yellow, yellow_centre_point  = self.get_colour_position(colour_mat, 'yellow')
         x_dir_accuracy =30
       
-            # check colour what color that is found 
+        # check colour what color that is found 
         if found_red and found_green:
             #check that the center of both color is on the same x value
             if abs(red_centre_point.x -green_centre_point.x) <x_dir_accuracy:
@@ -76,6 +76,7 @@ class beacon_detector_node:
                     cv2.putText(colour_mat ,"Green top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                  
         if found_red and found_yellow: 
+            #check that the center of both color is on the same x value
             if abs(red_centre_point.x -yellow_centre_point.x) <x_dir_accuracy:
                 if red_centre_point.y <yellow_centre_point.y:
               
