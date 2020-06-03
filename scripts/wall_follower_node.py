@@ -38,6 +38,10 @@ class FollowSide(Enum):
 
 class wall_follower_node:
     def __init__(self):
+        self.spin_time = 0 # Variable for spinning before starting wall following
+        self.spin_flag = False # keeps track of state if we are spinning or not
+        self.spin_duration = 4 # How long the robot will spin (in seconds)
+
         self.stopped = False    # Assume robot is moving and needs to be stopped first
         self.explore = False
         self.follow_side = FollowSide.LEFT
@@ -98,6 +102,35 @@ class wall_follower_node:
         except tf.Exception:
             print "Unable to get transformation!"
 
+
+
+        # If wallfollower is just started, spin for a full rotation before starting wall following
+        # if the spin flag is false then start spinning
+        if self.spin_flag == False:
+            vel_msg = Twist()
+            vel_msg.linear.x = 0
+            vel_msg.linear.y = 0
+            vel_msg.linear.z = 0
+            vel_msg.angular.x = 0
+            vel_msg.angular.y = 0
+            vel_msg.angular.z = 1
+            self.publisher_twist.publish(vel_msg)
+            rospy.logdebug('[Wall Follower] Started spinning')
+
+            self.spin_flag = True  
+            self.spin_time = rospy.Time.now().to_sec()  
+        # Check if the robot has been spinning for a sufficient time
+        elif  rospy.Time.now().to_sec() - self.spin_time > self.spin_duration: 
+            vel_msg = Twist()
+            vel_msg.linear.x = 0
+            vel_msg.linear.y = 0
+            vel_msg.linear.z = 0
+            vel_msg.angular.x = 0
+            vel_msg.angular.y = 0
+            vel_msg.angular.z = 0
+            self.publisher_twist.publish(vel_msg)
+            rospy.logdebug('[Wall Follower] Stopped spinning')
+        
 
         # We want to find how far in front of the robot the wall to the left extends
         # and how far away the nearest point in front of the robot is.
@@ -186,6 +219,7 @@ class wall_follower_node:
             self.explore = True
             return SetBoolResponse(True, 'Starting Exploring')
         elif start_stop.data==False and self.explore:
+            self.spin_flag = False # Reset spin flag to enable spin again for next start
             self.explore = False
             self.stopped = False
             # setting explore to false and stopped to false will cause the next laser scan
