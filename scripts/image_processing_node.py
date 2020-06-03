@@ -5,6 +5,7 @@ import rospy
 import cv2 
 import numpy as np 
 import imutils
+from std_msgs.msg import String
 from sensor_msgs.msg import Image, CompressedImage, CameraInfo
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, Pose, Vector3, Point
@@ -24,10 +25,14 @@ class XYPoint():
 
 class image_processing_node:
     def __init__(self):
+        #duration for how loong the robot will stop to find the correct position of the beacon 
+        self.wait_for_sec = 2 
         self.bridge = CvBridge()
         self.colour_frame = None
         self.depth_frame = None
         self.K = None
+        self.stop_flag = False # 
+        self.wait_time = rospy.Time.now() # time when the robot got stop signal
         self.marker_array = MarkerArray()
         self.beacons_colour = rospy.get_param("~beacon_colours")
         self.beacons = rospy.get_param("~beacons")
@@ -37,7 +42,8 @@ class image_processing_node:
         self.subscriber_odometry = rospy.Subscriber('odom', Odometry ,self.callback_odometry)
         self.tflistener = tf.TransformListener()
         self.publish_beacon_pos = rospy.Publisher('/ecte477/beacons', MarkerArray, queue_size=1)
-        self.beaconsLeft= 10
+        self.publisher_command = rospy.Publisher('cmd/',String, queue_size=1)
+        
         r = rospy.Rate(10)
         while not rospy.is_shutdown():
             if self.colour_frame != None and self.depth_frame !=None:
@@ -60,70 +66,108 @@ class image_processing_node:
         colour_mat, found_green, green_centre_point  = self.get_colour_position(colour_mat, 'green')
         colour_mat, found_yellow, yellow_centre_point  = self.get_colour_position(colour_mat, 'yellow')
         x_dir_accuracy =30
+      
             # check colour what color that is found 
         if found_red and found_green:
             #check that the center of both color is on the same x value
             if abs(red_centre_point.x -green_centre_point.x) <x_dir_accuracy:
                 #if red is above green 
-                if red_centre_point.y <green_centre_point.y :
+                if red_centre_point.y <green_centre_point.y:
+                  
+                    beaconPoints.append([red_centre_point, "red", "green"]) 
                     cv2.putText(colour_mat ,"Red top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                 if red_centre_point.y >green_centre_point.y:
+                   
+                    beaconPoints.append([red_centre_point, "green", "red"]) 
                     cv2.putText(colour_mat ,"Green top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                beaconPoints.append(red_centre_point)  
+                 
         if found_red and found_yellow: 
             if abs(red_centre_point.x -yellow_centre_point.x) <x_dir_accuracy:
                 if red_centre_point.y <yellow_centre_point.y:
+              
+                    beaconPoints.append([red_centre_point, "red", "yellow"]) 
                     cv2.putText(colour_mat ,"Red top and yellow bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                 if red_centre_point.y >yellow_centre_point.y:
+               
+                    beaconPoints.append([red_centre_point, "yellow", "red"]) 
                     cv2.putText(colour_mat ,"Yellow top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                beaconPoints.append(red_centre_point) 
+               
         if found_red and found_blue: 
             if abs(red_centre_point.x -blue_centre_point.x) <x_dir_accuracy:
                 if red_centre_point.y <blue_centre_point.y:
+                    beaconPoints.append([red_centre_point, "red", "blue"]) 
                     cv2.putText(colour_mat ,"Red top and Blue bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                 if red_centre_point.y >blue_centre_point.y:
+                    beaconPoints.append([red_centre_point, "blue", "red"]) 
                     cv2.putText(colour_mat ,"Blue top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                beaconPoints.append(red_centre_point) 
+               
         if found_green and found_blue: 
             if abs(blue_centre_point.x -green_centre_point.x) <x_dir_accuracy:
                 if green_centre_point.y <blue_centre_point.y:
+                    beaconPoints.append([green_centre_point, "green", "blue"]) 
                     cv2.putText(colour_mat ,"Green top and blue bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                 if green_centre_point.y >blue_centre_point.y:
+                    beaconPoints.append([green_centre_point, "blue", "green"]) 
                     cv2.putText(colour_mat ,"Blue top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                beaconPoints.append(green_centre_point) 
+               
         if found_green and found_yellow: 
             if abs(green_centre_point.x -yellow_centre_point.x) <x_dir_accuracy:
                 if green_centre_point.y <yellow_centre_point.y:
+                    beaconPoints.append([green_centre_point, "green", "yellow"]) 
                     cv2.putText(colour_mat ,"Green top and yellow bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                 if green_centre_point.y >yellow_centre_point.y:
+                    beaconPoints.append([green_centre_point, "yellow", "green"]) 
                     cv2.putText(colour_mat ,"Yellow top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                beaconPoints.append(green_centre_point) 
+                
         if found_yellow and found_blue: 
             if abs(yellow_centre_point.x -blue_centre_point.x) <x_dir_accuracy:
                 if yellow_centre_point.y <blue_centre_point.y:
+                    beaconPoints.append([yellow_centre_point, "yellow", "blue"]) 
                     cv2.putText(colour_mat ,"yellow top and Blue beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                 if yellow_centre_point.y >blue_centre_point.y:
+                    beaconPoints.append([yellow_centre_point, "blue", "yellow"]) 
                     cv2.putText(colour_mat ,"Blue top and yellow beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                beaconPoints.append(yellow_centre_point)
+                
 
         #check that a beacon is found 
         if  len(beaconPoints) >0 :
             #for all beacons find the depth
-            for i in beaconPoints:   
-                depth = self.find_dept_at_pix(depth_mat, i, 5)
-             
-                beacon_location = self.get_beacon_location(depth, i , odom_transform)
-               
+            for i in beaconPoints: 
+            
+                for beacon in self.beacons:
+                #check that the colour combination is not found before 
+                    if beacon["top"] ==  i[1] and beacon["bottom"] == i[2]:
+                        self.publisher_command.publish("stop")
+                        print "stopping robot  "
+                    #if the stop flag is false then first stop the robot 
+                        if  self.stop_flag == False:
+                            self.stop_flag = True  
+                            self.wait_time = rospy.Time.now().to_sec()  
+                            #check that the robot has stoped. estimates that it will take wait for sec secounds
+                        if  rospy.Time.now().to_sec() - self.wait_time > self.wait_for_sec:
+                            print "found beacon "
+                            self.beacons.remove(beacon)
+                            self.stop_flag = False  
+                            depth = self.find_dept_at_pix(depth_mat, i[0], 5)
+                            beacon_location = self.get_beacon_location(depth, i[0] , odom_transform)
+                            self.callback_publishBeacons(beacon_location, self.beacons) 
+                            self.publisher_command.publish("start")
 
-                self.callback_publishBeacons(beacon_location, self.beacons) 
-
-     
+        # if the beacon is lost while stopping, start to move again 
+        elif self.stop_flag == True:
+            print "stop flag true but lost the beacon"
+            self.stop_flag= False
+            self.publisher_command.publish("start")
         
             
        
         #cv2.imshow('Colour Image', colour_mat )
         #cv2.imshow('masked Image', mask)
         #cv2.waitKey(2)
+
+ 
+
+
 
     # Callback for a depth image 
     def callback_depth_image(self , depth_image):
@@ -338,30 +382,18 @@ class image_processing_node:
     def callback_publishBeacons(self, beacon_location, beacons): # just testing -> def publishBeacons(self, data):
 
         marker = Marker()
-
-
         marker.header.frame_id = "/map"
         marker.header.stamp = rospy.Time.now()
         marker.header.seq = len(self.marker_array.markers) + 1
         marker.scale = Vector3(0.1, 0.1, 0.1)
 
         marker.id = len(self.marker_array.markers) + 1
-
-
-
         marker.color.a = 1.0 # must be non-zero
         marker.color.g = 1.0
-
-
         marker.pose = beacon_location
-
-
         self.marker_array.markers.append(marker)
 
-
         self.publish_beacon_pos.publish(self.marker_array)
-
-        
         if len(self.marker_array.markers) == len(self.beacons):
             print("all beacons found. Now need to return home")
 
