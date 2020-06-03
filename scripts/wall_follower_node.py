@@ -41,7 +41,7 @@ class wall_follower_node:
         self.init_flag = False # Keeps track of whether or not initialisation is done
         self.spin_time = 0 # Variable for spinning before starting wall following
         self.spin_flag = False # keeps track of state if we are spinning or not
-        self.spin_duration = 4 # How long the robot will spin (in seconds)
+        self.spin_duration = 8 # How long the robot will spin (in seconds)
 
         self.stopped = False    # Assume robot is moving and needs to be stopped first
         self.explore = False
@@ -72,7 +72,7 @@ class wall_follower_node:
                 vel_msg.linear.z = 0
                 vel_msg.angular.x = 0
                 vel_msg.angular.y = 0
-                vel_msg.angular.z = 1
+                vel_msg.angular.z = 0.5
                 self.publisher_twist.publish(vel_msg)
                 rospy.logdebug('[Wall Follower] Started spinning')
 
