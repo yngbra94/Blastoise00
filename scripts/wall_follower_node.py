@@ -54,6 +54,45 @@ class wall_follower_node:
         self.service_start_stop = rospy.Service('start_stop', SetBool , self.callback_state)           # Service this node offers
         self.service_follow_left = rospy.Service('follow_left', SetBool , self.callback_follow_left)   # Service this node offers
 
+        r = rospy.Rate(10)
+        while not rospy.is_shutdown():
+            self.loop()
+            r.sleep()
+
+
+    def loop(self):
+        # If wall follower is just started, initialise with a full rotation
+        if self.init_flag == False:
+            # If wallfollower is just started, spin for a full rotation before starting wall following
+            # if the spin flag is false then start spinning
+            if self.spin_flag == False:
+                vel_msg = Twist()
+                vel_msg.linear.x = 0
+                vel_msg.linear.y = 0
+                vel_msg.linear.z = 0
+                vel_msg.angular.x = 0
+                vel_msg.angular.y = 0
+                vel_msg.angular.z = 1
+                self.publisher_twist.publish(vel_msg)
+                rospy.logdebug('[Wall Follower] Started spinning')
+
+                self.spin_flag = True  
+                self.spin_time = rospy.Time.now().to_sec()  
+            # Check if the robot has been spinning for a sufficient time
+            elif rospy.Time.now().to_sec() - self.spin_time > self.spin_duration: 
+                vel_msg = Twist()
+                vel_msg.linear.x = 0
+                vel_msg.linear.y = 0
+                vel_msg.linear.z = 0
+                vel_msg.angular.x = 0
+                vel_msg.angular.y = 0
+                vel_msg.angular.z = 0
+                self.publisher_twist.publish(vel_msg)
+                rospy.logdebug('[Wall Follower] Stopped spinning')
+
+                self.spin_flag = False # Reset flag for new spin
+                self.init_flag = True # Done initilising
+
 
     # Send a final stop command before shutting off the node
     def shutdown(self):
@@ -103,41 +142,8 @@ class wall_follower_node:
         except tf.Exception:
             print "Unable to get transformation!"
 
-
-        # If wall follower is just started, initialise with a full rotation
-        if self.init_flag == False:
-            # If wallfollower is just started, spin for a full rotation before starting wall following
-            # if the spin flag is false then start spinning
-            if self.spin_flag == False:
-                vel_msg = Twist()
-                vel_msg.linear.x = 0
-                vel_msg.linear.y = 0
-                vel_msg.linear.z = 0
-                vel_msg.angular.x = 0
-                vel_msg.angular.y = 0
-                vel_msg.angular.z = 1
-                self.publisher_twist.publish(vel_msg)
-                rospy.logdebug('[Wall Follower] Started spinning')
-
-                self.spin_flag = True  
-                self.spin_time = rospy.Time.now().to_sec()  
-            # Check if the robot has been spinning for a sufficient time
-            elif rospy.Time.now().to_sec() - self.spin_time > self.spin_duration: 
-                vel_msg = Twist()
-                vel_msg.linear.x = 0
-                vel_msg.linear.y = 0
-                vel_msg.linear.z = 0
-                vel_msg.angular.x = 0
-                vel_msg.angular.y = 0
-                vel_msg.angular.z = 0
-                self.publisher_twist.publish(vel_msg)
-                rospy.logdebug('[Wall Follower] Stopped spinning')
-
-                self.spin_flag == False # Reset flag for new spin
-                self.init_flag == True # Done initilising
-        
-        # Done initialising, start wall following
-        else:
+        # If done initialising, start wall following
+        if self.init_flag == True:
             # We want to find how far in front of the robot the wall to the left extends
             # and how far away the nearest point in front of the robot is.
             x_side_max = -np.inf
@@ -225,7 +231,7 @@ class wall_follower_node:
             self.explore = True
             return SetBoolResponse(True, 'Starting Exploring')
         elif start_stop.data==False and self.explore:
-            self.init_flag = False # Reset init flag to enable init again for next start
+            #self.init_flag = False # Reset init flag to enable init again for next start
             self.explore = False
             self.stopped = False
             # setting explore to false and stopped to false will cause the next laser scan
@@ -248,11 +254,9 @@ class wall_follower_node:
 
     
 if __name__ == '__main__':
-    print "Starting ROS Wall Following module"
-    rospy.init_node('wall_follower_node', anonymous=True, log_level=rospy.DEBUG)
-    wf = wall_follower_node()
     try:
-        rospy.spin()
-    except KeyboardInterrupt:
-        print "Shutting down ROS Wall Following module"
-    wf.shutdown()
+        print "Starting ROS Wall Following module"
+        rospy.init_node('wall_follower_node', anonymous=True, log_level=rospy.DEBUG)
+        wf = wall_follower_node()
+    except rospy.ROSInterruptException:
+        pass

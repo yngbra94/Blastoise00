@@ -44,6 +44,7 @@ class navigation_node:
         self.initPose.pose.orientation.w = 1.0 # 
         self.currentPose = PoseStamped()
         self.robotCurrentState = RobotState.WAITING_TO_START # Initial starting state
+        self.wallfollowing_state = False # Wall following state
 
         # Publishers 
         # Publishes new goals to the robot. 
@@ -193,9 +194,12 @@ class navigation_node:
     # 
     # @param frontiers, The subscribed frointer data from the robot, Type MarkerArray
     def frontiers_callback(self, frontiers):
-        if(frontiers.markers == [] and self.robotCurrentState == RobotState.EXPLORING):
+        if(frontiers.markers == [] and self.robotCurrentState == RobotState.EXPLORING and self.wallfollowing_state == False):
             # Notify command server that all frontiers are explored
             self.set_robot_action_and_pub(RobotState.DONE)
+
+            # Make sure explore node is stopped
+            self.set_explore_state(False)
 
             # Continue exploring by starting wall following
             self.toggle_wallfollowing(True)
@@ -204,14 +208,16 @@ class navigation_node:
             if(self.debug):
                 print("No more frontiers.")
 
+
     # Start wall following
     def toggle_wallfollowing(self, state):
         # Wait for service
         rospy.wait_for_service('start_stop')
         try:
-            # Create a service for the explore service to toggle state
+            # Create a service for the wallfollower service to toggle state
             pub_wallfollow_start_top = rospy.ServiceProxy('start_stop',SetBool)
-            pub_wallfollow_start_top(state) # tell wall follower to start
+            pub_wallfollow_start_top(state) # tell wall follower to start or stop
+            self.wallfollowing_state = state
         except rospy.ServiceException, e:
             print "Service call failed: %s" %e
 
