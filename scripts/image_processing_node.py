@@ -56,10 +56,7 @@ class image_processing_node:
         colour_mat = self.colour_frame
         depth_mat = self.depth_frame
         odom_transform = self.transform_cam_to_world
-        yellow=False
-        red=False
-        green=False
-        blue=False
+
         beaconPoints = []
         colour_mat, found_red, red_centre_point = self.get_colour_position(colour_mat, 'red')
         colour_mat, found_blue, blue_centre_point  = self.get_colour_position(colour_mat, 'blue')
@@ -150,7 +147,7 @@ class image_processing_node:
                             self.stop_flag = False  
                             depth = self.find_dept_at_pix(depth_mat, i[0], 5)
                             beacon_location = self.get_beacon_location(depth, i[0] , odom_transform)
-                            self.callback_publishBeacons(beacon_location, self.beacons) 
+                            self.publish_marker(beacon_location, i[1], beacon["id"]) 
                             self.publisher_command.publish("start")
 
         # if the beacon is lost while stopping, start to move again 
@@ -158,15 +155,7 @@ class image_processing_node:
             print "stop flag true but lost the beacon"
             self.stop_flag= False
             self.publisher_command.publish("start")
-        
-            
-       
-        #cv2.imshow('Colour Image', colour_mat )
-        #cv2.imshow('masked Image', mask)
-        #cv2.waitKey(2)
-
- 
-
+    
 
 
     # Callback for a depth image 
@@ -231,14 +220,14 @@ class image_processing_node:
         self.K=np.array(camera_info.K).reshape([3,3])
 
     def callback_odometry(self,odometry):
+        """
+        Callback the get the odometry. 
+        Used to make a transformation matrix between the camera to the world
+        """
         self.pose = odometry.pose.pose
-        #rob3cam = np.array([np.array([0, -1, 0, 0.069]),np.array([0, 0, 1, -0.047]),np.array([1, 0, 0, 0.117]),np.array([0, 0, 0, 1])])
+        # This transformation matrix is used to get the position and orientation of the camera. 
+        # Its rotaion os first +90deg around the base_footprint Y axis and then -90deg around the base_footprint x axis
         rob3cam = np.array([np.array([0, 0, 1, 0.069]),np.array([-1, 0, 0, -0.047]),np.array([0, -1, 0, 0.117]),np.array([0, 0, 0, 1])])    
-
-
-        #self.transform_cam_to_world = trans.msg_to_se3(odometry.pose.pose)
-        #self.transform_cam_to_world = np.matmul(trans.msg_to_se3(odometry.pose.pose),rob3cam)
-
         self.transform_cam_to_world = np.matmul(trans.msg_to_se3(odometry.pose.pose),rob3cam)
 
     ### Color detection methods. 
@@ -339,6 +328,12 @@ class image_processing_node:
 
         # get beacon location. 
     def get_beacon_location(self, depth, pix_pos, Tcam_world):
+        """
+        This method is used to get world coordinates of an object detected in the x,y image pixel with ad given depth. 
+        :@param depth: The measure depth to the object. 
+        :@param pix_pos: The pixel position in x and y given as a Point. 
+        :@param Tcam_world: The transforamtion matrix between the camera an world. 
+        """
         if self.K == None:
             rospy.loginfo("K missing")
             return
@@ -355,9 +350,10 @@ class image_processing_node:
 
 
         p_h = np.array ([[x], [y], [1]])
-        
+        # Fund the [X, Y, Z] position of object based on the image frame 
         p3d = depth * np.matmul(np.linalg.inv(self.K), p_h)
         p3d_h = np.array ([[ p3d [0][0]] , [p3d [1][0]] , [p3d [2][0]] ,  [1]])
+        # Find the X, Y and Z position to the object relative to the world
         p3d_w_h = np.matmul(Tcam_world, p3d_h)
         p3d_w = np.array ([[ p3d_w_h [0][0]/ p3d_w_h [3][0]] , [p3d_w_h [1][0]/ p3d_w_h [3][0]] , [p3d_w_h [2][0]/ p3d_w_h [3][0]]]) 
 
@@ -365,37 +361,41 @@ class image_processing_node:
         beacon_pose.position.x = p3d_w[0] 
         beacon_pose.position.y = p3d_w[1] 
 
-        print("K: \n{}".format(self.K))
-        print("K-1: \n{}".format(np.linalg.inv(self.K)))
-        print("T: \n{}".format(self.transform_cam_to_world))
-        print("T-1: \n{}".format(np.linalg.inv(self.transform_cam_to_world)))
-        print(" K-1 * [x y 1]: \n{}".format(np.matmul(np.linalg.inv(self.K), p_h)))
-        print("P_h \n{}".format(p_h))
-        print("Pcam: \n{}".format(p3d_h))
-        print ("sPw pos: \n{}".format(p3d_w))
-        print("Robot Pos: \n{}".format(self.pose.position))
-        print ("Beacon pos: \n{}".format(beacon_pose.position))
-
-
         return beacon_pose
-    
-    def callback_publishBeacons(self, beacon_location, beacons): # just testing -> def publishBeacons(self, data):
 
+    #    
+    def publish_marker(self, marker_pose, colour, ID):
+        """
+        Publishes a maker at the given maker pose, colors and ID 
+        :@param marker_pose: the position to place the marker
+        :@type marker_pose: Pose()
+        :@param colour: Colour of marker. red, green, blue or yellow
+        :@type colour: String. (e.g. "yellow")
+        :@param ID: The ID of the ID of the marker. 
+        :@type ID: int
+
+        """
         marker = Marker()
-        marker.header.frame_id = "/map"
+        marker.header.seq = len(self.marker_array.markers) + 1 
+        marker.id = ID
+        marker.header.frame_id = "odom"
         marker.header.stamp = rospy.Time.now()
-        marker.header.seq = len(self.marker_array.markers) + 1
-        marker.scale = Vector3(0.1, 0.1, 0.1)
-
-        marker.id = len(self.marker_array.markers) + 1
+        marker.pose = marker_pose
+        marker.scale = Vector3(0.2, 0.2, 0.2)
         marker.color.a = 1.0 # must be non-zero
-        marker.color.g = 1.0
-        marker.pose = beacon_location
-        self.marker_array.markers.append(marker)
+        if colour == "red":
+            marker.color.r = 1.0
+        elif colour == "blue":
+            marker.color.b = 1.0
+        elif colour == "green":
+            marker.color.g = 1.0
+        elif colour == "yellow": 
+            marker.color.r = 1.0
+            marker.color.g = 1.0
 
+        self.marker_array.markers.append(marker)
         self.publish_beacon_pos.publish(self.marker_array)
-        if len(self.marker_array.markers) == len(self.beacons):
-            print("all beacons found. Now need to return home")
+
 
 if __name__ == '__main__': 
     try:
