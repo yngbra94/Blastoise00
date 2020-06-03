@@ -338,12 +338,15 @@ class image_processing_node:
     def callback_publishBeacons(self, beacon_location, beacons): # just testing -> def publishBeacons(self, data):
 
         marker = Marker()
-        marker.header.seq = len(self.marker_array.markers) + 1
+
+
         marker.header.frame_id = "/map"
-
-        marker.action = marker.ADD
-
+        marker.header.stamp = rospy.Time.now()
+        marker.header.seq = len(self.marker_array.markers) + 1
         marker.scale = Vector3(0.1, 0.1, 0.1)
+
+        marker.id = len(self.marker_array.markers) + 1
+
 
 
         marker.color.a = 1.0 # must be non-zero
