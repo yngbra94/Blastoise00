@@ -5,15 +5,15 @@ import rospy
 import cv2 
 import numpy as np 
 import imutils
-from std_msgs.msg import String
+from std_msgs.msg import String, Int16
 from sensor_msgs.msg import Image, CompressedImage, CameraInfo
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, Pose, Vector3, Point
 import transformations as trans
 from cv_bridge import CvBridge, CvBridgeError
 from visualization_msgs.msg import Marker, MarkerArray
-from tf.transformations import quaternion_matrix
-import tf
+
+
 
 
 # Constants
@@ -23,7 +23,7 @@ class XYPoint():
         self.x = x
         self.y = y
 
-class image_processing_node:
+class beacon_detector_node:
     def __init__(self):
         #duration for how loong the robot will stop to find the correct position of the beacon 
         self.wait_for_sec = 2 
@@ -40,10 +40,10 @@ class image_processing_node:
         self.subscriber_camera_info = rospy.Subscriber('camera/rgb/camera_info',CameraInfo,self.callback_camera_info)
         self.subscriber_camera_info = rospy.Subscriber('camera/depth/image_raw',Image,self.callback_depth_image)
         self.subscriber_odometry = rospy.Subscriber('odom', Odometry ,self.callback_odometry)
-        self.tflistener = tf.TransformListener()
         self.publish_beacon_pos = rospy.Publisher('/ecte477/beacons', MarkerArray, queue_size=1)
         self.publisher_command = rospy.Publisher('cmd/',String, queue_size=1)
-        
+        self.publisher_beacons_left = rospy.Publisher('beacons_left/',Int16, queue_size=1)
+      
         r = rospy.Rate(10)
         while not rospy.is_shutdown():
             if self.colour_frame != None and self.depth_frame !=None:
@@ -56,7 +56,6 @@ class image_processing_node:
         colour_mat = self.colour_frame
         depth_mat = self.depth_frame
         odom_transform = self.transform_cam_to_world
-
         beaconPoints = []
         colour_mat, found_red, red_centre_point = self.get_colour_position(colour_mat, 'red')
         colour_mat, found_blue, blue_centre_point  = self.get_colour_position(colour_mat, 'blue')
@@ -70,11 +69,9 @@ class image_processing_node:
             if abs(red_centre_point.x -green_centre_point.x) <x_dir_accuracy:
                 #if red is above green 
                 if red_centre_point.y <green_centre_point.y:
-                  
                     beaconPoints.append([red_centre_point, "red", "green"]) 
                     cv2.putText(colour_mat ,"Red top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                 if red_centre_point.y >green_centre_point.y:
-                   
                     beaconPoints.append([red_centre_point, "green", "red"]) 
                     cv2.putText(colour_mat ,"Green top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                  
@@ -155,8 +152,13 @@ class image_processing_node:
             print "stop flag true but lost the beacon"
             self.stop_flag= False
             self.publisher_command.publish("start")
+
+        # publish how many beacons that is left 
+        self.publisher_beacons_left.publish(len(self.beacons))
     
 
+
+    
 
     # Callback for a depth image 
     def callback_depth_image(self , depth_image):
@@ -400,6 +402,6 @@ class image_processing_node:
 if __name__ == '__main__': 
     try:
         rospy.init_node('image_processing_node') 
-        ipn = image_processing_node()
+        ipn = beacon_detector_node()
     except rospy.ROSInterruptException:
         pass
