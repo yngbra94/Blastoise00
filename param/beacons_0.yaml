@@ -1,0 +1,6 @@
+beacons: [
+    { id: 0, top: blue, bottom: green },
+    { id: 1, top: green, bottom: yellow },
+    { id: 2, top: blue, bottom: red },
+    { id: 3, top: red, bottom: yellow },
+]

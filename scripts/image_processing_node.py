@@ -30,12 +30,13 @@ class image_processing_node:
         self.K = None
         self.marker_array = MarkerArray()
         self.beacons_colour = rospy.get_param("~beacon_colours")
+        self.beacons = rospy.get_param("~beacons")
         self.sub_colour_image = rospy.Subscriber('camera/rgb/image_raw/compressed', CompressedImage, self.callback_colour_image)
         self.subscriber_camera_info = rospy.Subscriber('camera/rgb/camera_info',CameraInfo,self.callback_camera_info)
         self.subscriber_camera_info = rospy.Subscriber('camera/depth/image_raw',Image,self.callback_depth_image)
         self.subscriber_odometry = rospy.Subscriber('odom', Odometry ,self.callback_odometry)
         self.tflistener = tf.TransformListener()
-        self.publisher_markers = rospy.Publisher('markers/', MarkerArray, queue_size =1)
+        self.publish_beacon_pos = rospy.Publisher('/ecte477/beacons', MarkerArray, queue_size=1)
         self.beaconsLeft= 10
         r = rospy.Rate(10)
         while not rospy.is_shutdown():
@@ -113,20 +114,8 @@ class image_processing_node:
              
                 beacon_location = self.get_beacon_location(depth, i , odom_transform)
                
-               
-                marker = Marker()
-                marker.header.seq = len(self.marker_array.markers) + 1
-                marker.header.frame_id ='odom'
-                marker.header.stamp = rospy.Time.now()
-                marker.id = len(self.marker_array.markers) + 1
-                marker.pose = beacon_location
-                marker.scale = Vector3(0.1, 0.1, 0.1)
-                marker.color.r = 0.0
-                marker.color.g = 1.0
-                marker.color.b = 0.0
-                marker.color.a = 1.0
-                self.marker_array.markers.append(marker)
-                self.publisher_markers.publish(self.marker_array)
+
+                self.callback_publishBeacons(beacon_location, self.beacons) 
 
      
         
@@ -345,6 +334,33 @@ class image_processing_node:
 
 
         return beacon_pose
+    
+    def callback_publishBeacons(self, beacon_location, beacons): # just testing -> def publishBeacons(self, data):
+
+        marker = Marker()
+        marker.header.seq = len(self.marker_array.markers) + 1
+        marker.header.frame_id = "/map"
+
+        marker.action = marker.ADD
+
+        marker.scale = Vector3(0.1, 0.1, 0.1)
+
+
+        marker.color.a = 1.0 # must be non-zero
+        marker.color.g = 1.0
+
+
+        marker.pose = beacon_location
+
+
+        self.marker_array.markers.append(marker)
+
+
+        self.publish_beacon_pos.publish(self.marker_array)
+
+        
+        if len(self.marker_array.markers) == len(self.beacons):
+            print("all beacons found. Now need to return home")
 
 if __name__ == '__main__': 
     try:
