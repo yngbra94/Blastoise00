@@ -195,10 +195,8 @@ class beacon_detector_node:
         depth_frame = self.bridge.imgmsg_to_cv2(depth_image , desired_encoding ="passthrough")
         self.depth_frame = np.array(depth_frame, dtype=np.float32)
 
-    def calculate_centre_of_Square(self, x, y, w, h):
-        centrePoint  = XYPoint((x+w/2), (y+h/2))
-    
-        return centrePoint
+
+
 
     def callback_colour_image(self , colour_image): 
         colour_np_arr = np.fromstring(colour_image.data , np.uint8)
@@ -206,10 +204,15 @@ class beacon_detector_node:
 
      
   
+    def calculate_centre_of_Square(self, x, y, w, h):
+        centrePoint  = XYPoint((x+w/2), (y+h/2))
+        return centrePoint
          
     
-    # check if the color is found and return the position centre of the color
-    #  
+    # check if the color is found and 
+    # return the image frame with the bounding box added of the largest square.  
+    # return the centre position of the largest contour
+    #  return found_colour=  true if the colour is found 
     def get_colour_position(self, image_frame, color):
         #Definition of the hsv values 
         lower_hsv_limit = (self.beacons_colour[color]["hueMin"], self.beacons_colour[color]["satMin"],  self.beacons_colour[color]["valMin"])
