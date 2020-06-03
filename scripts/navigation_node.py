@@ -39,6 +39,7 @@ class navigation_node:
         # Variables: 
         self.debug = False 
         # make a pose in pos;[0 0 0] orientation; [0 0 0 1]
+        self.poseExist = False
         self.initPose = PoseStamped()
         self.initPose.pose.orientation.w = 1.0 # 
         self.currentPose = PoseStamped()
@@ -163,6 +164,17 @@ class navigation_node:
         # Update current pose
         self.currentPose = data.feedback.base_position
         
+        # Store initial pose
+        if(self.poseExist == False):
+            # Set init pose
+            self.initPose = data.feedback.base_position
+            # Used with debug
+            if(self.debug):
+                print("Init pose saved as:  %s "% (self.initPose.pose))
+            # Pose exist flag
+            self.poseExist = True
+
+
     
     # Callback for the robot state
     # listens to move_base and check if the robot is returned home (Goal reached)
