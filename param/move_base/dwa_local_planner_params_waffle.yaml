@@ -2,7 +2,7 @@ DWAPlannerROS:
 
 # Robot Configuration Parameters
   max_vel_x: 0.26
-  min_vel_x: -0.10 # Make reverse less effective than forward for a forward bias
+  min_vel_x: -0.05 # Make reverse less effective than forward for a forward bias
 
   max_vel_y: 0.0
   min_vel_y: 0.0

@@ -2,7 +2,7 @@ robot_base_frame: base_link
 costmap_topic: ecte477/map
 costmap_updates_topic: map_updates
 visualize: true
-planner_frequency: 1.00
+planner_frequency: 3.00
 progress_timeout: 30.0
 potential_scale: 3.0
 orientation_scale: 0.0
