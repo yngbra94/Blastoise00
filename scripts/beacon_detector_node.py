@@ -1,6 +1,22 @@
 #!/usr/bin/env python
 # image_processing_node.py
 
+"""
+This node is responsible for detecting the nodes in the image from then converting the found pixel in to real world coordinate. 
+when a beacon is found is there sent a stop sign to the command server, this is for making the robot stop so the transformation is as stable as possible 
+The beacon is published to the topic /ecte477/beacons. The number of beacons to find is defined in the beacon_colours.yaml. 
+The number of beacons left is published to the topic beacons_left. 
+
+The beacons is found using the larges square of each colour with using HSV colour space. The beacon position is chosen as the center of the square.
+the code also checks that the found boxes is above each other, and will ignore the beacon if the coordinates is not within a threshold. 
+ 
+
+
+    Subscribed: camera/rgb/image_raw/compressed, camera/rgb/camera_info, camera/depth/image_raw, odom
+    Publishes:  cmd/, beacons_left/ /ecte477/beacons
+
+"""
+
 import rospy
 import cv2 
 import numpy as np 
@@ -18,6 +34,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 
 # Constants
 DEPTH_SCALE = 1     # Depth is given in integer values on 1mm
+#point in the image 
 class XYPoint():
     def __init__(self, x, y):
         self.x = x
@@ -25,7 +42,7 @@ class XYPoint():
 
 class beacon_detector_node:
     def __init__(self):
-        #duration for how loong the robot will stop to find the correct position of the beacon 
+        #duration for how long the robot will stop to find the correct position of the beacon 
         self.wait_for_sec = 3 
         self.bridge = CvBridge()
         self.colour_frame = None
@@ -46,6 +63,7 @@ class beacon_detector_node:
       
         r = rospy.Rate(10)
         while not rospy.is_shutdown():
+            #check that we have received an image and a depth image 
             if self.colour_frame != None and self.depth_frame !=None:
                 self.loop()
             r.sleep()
@@ -56,7 +74,9 @@ class beacon_detector_node:
         colour_mat = self.colour_frame
         depth_mat = self.depth_frame
         odom_transform = self.transform_cam_to_world
+
         beaconPoints = []
+        # find the centre pixel coordinate of the largest box of each colour
         colour_mat, found_red, red_centre_point = self.get_colour_position(colour_mat, 'red')
         colour_mat, found_blue, blue_centre_point  = self.get_colour_position(colour_mat, 'blue')
         colour_mat, found_green, green_centre_point  = self.get_colour_position(colour_mat, 'green')
@@ -71,23 +91,23 @@ class beacon_detector_node:
                 if red_centre_point.y <green_centre_point.y:
                     beaconPoints.append([red_centre_point, "red", "green"]) 
                     cv2.putText(colour_mat ,"Red top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+                #if red is above green 
                 if red_centre_point.y >green_centre_point.y:
                     beaconPoints.append([red_centre_point, "green", "red"]) 
                     cv2.putText(colour_mat ,"Green top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                 
+         # check colour what color that is found         
         if found_red and found_yellow: 
             #check that the center of both color is on the same x value
             if abs(red_centre_point.x -yellow_centre_point.x) <x_dir_accuracy:
                 if red_centre_point.y <yellow_centre_point.y:
-              
                     beaconPoints.append([red_centre_point, "red", "yellow"]) 
                     cv2.putText(colour_mat ,"Red top and yellow bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                if red_centre_point.y >yellow_centre_point.y:
-               
+                if red_centre_point.y >yellow_centre_point:
                     beaconPoints.append([red_centre_point, "yellow", "red"]) 
                     cv2.putText(colour_mat ,"Yellow top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-               
+        # check colour what color that is found        
         if found_red and found_blue: 
+             #check that the center of both color is on the same x value
             if abs(red_centre_point.x -blue_centre_point.x) <x_dir_accuracy:
                 if red_centre_point.y <blue_centre_point.y:
                     beaconPoints.append([red_centre_point, "red", "blue"]) 
@@ -95,8 +115,9 @@ class beacon_detector_node:
                 if red_centre_point.y >blue_centre_point.y:
                     beaconPoints.append([red_centre_point, "blue", "red"]) 
                     cv2.putText(colour_mat ,"Blue top and red bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-               
-        if found_green and found_blue: 
+        # check colour what color that is found        
+        if found_green and found_blue:
+             #check that the center of both color is on the same x value 
             if abs(blue_centre_point.x -green_centre_point.x) <x_dir_accuracy:
                 if green_centre_point.y <blue_centre_point.y:
                     beaconPoints.append([green_centre_point, "green", "blue"]) 
@@ -104,8 +125,9 @@ class beacon_detector_node:
                 if green_centre_point.y >blue_centre_point.y:
                     beaconPoints.append([green_centre_point, "blue", "green"]) 
                     cv2.putText(colour_mat ,"Blue top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-               
+         # check colour what color that is found       
         if found_green and found_yellow: 
+             #check that the center of both color is on the same x value
             if abs(green_centre_point.x -yellow_centre_point.x) <x_dir_accuracy:
                 if green_centre_point.y <yellow_centre_point.y:
                     beaconPoints.append([green_centre_point, "green", "yellow"]) 
@@ -113,8 +135,9 @@ class beacon_detector_node:
                 if green_centre_point.y >yellow_centre_point.y:
                     beaconPoints.append([green_centre_point, "yellow", "green"]) 
                     cv2.putText(colour_mat ,"Yellow top and green bottom beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-                
+        # check colour what color that is found     
         if found_yellow and found_blue: 
+             #check that the center of both color is on the same x value
             if abs(yellow_centre_point.x -blue_centre_point.x) <x_dir_accuracy:
                 if yellow_centre_point.y <blue_centre_point.y:
                     beaconPoints.append([yellow_centre_point, "yellow", "blue"]) 
@@ -123,7 +146,6 @@ class beacon_detector_node:
                     beaconPoints.append([yellow_centre_point, "blue", "yellow"]) 
                     cv2.putText(colour_mat ,"Blue top and yellow beacon", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                 
-
         #check that a beacon is found 
         if  len(beaconPoints) >0 :
             #for all beacons find the depth
@@ -173,10 +195,8 @@ class beacon_detector_node:
         depth_frame = self.bridge.imgmsg_to_cv2(depth_image , desired_encoding ="passthrough")
         self.depth_frame = np.array(depth_frame, dtype=np.float32)
 
-    def calculate_centre_of_Square(self, x, y, w, h):
-        centrePoint  = XYPoint((x+w/2), (y+h/2))
-    
-        return centrePoint
+
+
 
     def callback_colour_image(self , colour_image): 
         colour_np_arr = np.fromstring(colour_image.data , np.uint8)
@@ -184,10 +204,15 @@ class beacon_detector_node:
 
      
   
+    def calculate_centre_of_Square(self, x, y, w, h):
+        centrePoint  = XYPoint((x+w/2), (y+h/2))
+        return centrePoint
          
     
-    # check if the color is found and return the position centre of the color
-    #  
+    # check if the color is found and 
+    # return the image frame with the bounding box added of the largest square.  
+    # return the centre position of the largest contour
+    #  return found_colour=  true if the colour is found 
     def get_colour_position(self, image_frame, color):
         #Definition of the hsv values 
         lower_hsv_limit = (self.beacons_colour[color]["hueMin"], self.beacons_colour[color]["satMin"],  self.beacons_colour[color]["valMin"])
@@ -213,8 +238,6 @@ class beacon_detector_node:
             centerPoint = self.calculate_centre_of_Square(x,y,w,h)
             image_frame  = cv2.rectangle(image_frame ,(x,y),(x+w,y+h),(0,0,255),2)
             cv2.putText(image_frame ,color, (x,y), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-
-
         return image_frame, found_colour, centerPoint
         
      
@@ -363,7 +386,6 @@ class beacon_detector_node:
         beacon_pose = Pose()
         beacon_pose.position.x = p3d_w[0] 
         beacon_pose.position.y = p3d_w[1] 
-
         return beacon_pose
 
     #    
