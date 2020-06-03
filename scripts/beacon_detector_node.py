@@ -2,13 +2,13 @@
 # image_processing_node.py
 
 """
-This node is responsible for detecting the nodes in the image fram then converting the found pixel in to real world coordinate. 
+This node is responsible for detecting the nodes in the image from then converting the found pixel in to real world coordinate. 
 when a beacon is found is there sent a stop sign to the command server, this is for making the robot stop so the transformation is as stable as possible 
 The beacon is published to the topic /ecte477/beacons. The number of beacons to find is defined in the beacon_colours.yaml. 
 The number of beacons left is published to the topic beacons_left. 
 
-The beacons is found using the larges square of each colour with using HSV colour space. The beacon position is choosen as the center of the square.
-the code also checks that the found boxes is above each other, and will ignore the beacon if the coordinates is not within a thershould. 
+The beacons is found using the larges square of each colour with using HSV colour space. The beacon position is chosen as the center of the square.
+the code also checks that the found boxes is above each other, and will ignore the beacon if the coordinates is not within a threshold. 
  
 
 
@@ -42,7 +42,7 @@ class XYPoint():
 
 class beacon_detector_node:
     def __init__(self):
-        #duration for how loong the robot will stop to find the correct position of the beacon 
+        #duration for how long the robot will stop to find the correct position of the beacon 
         self.wait_for_sec = 3 
         self.bridge = CvBridge()
         self.colour_frame = None
@@ -63,7 +63,7 @@ class beacon_detector_node:
       
         r = rospy.Rate(10)
         while not rospy.is_shutdown():
-            #check that we have recived an image and a depth image 
+            #check that we have received an image and a depth image 
             if self.colour_frame != None and self.depth_frame !=None:
                 self.loop()
             r.sleep()
