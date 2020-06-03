@@ -199,13 +199,9 @@ class image_processing_node:
 
     def callback_odometry(self,odometry):
         self.pose = odometry.pose.pose
-        rob3cam = np.array([np.array([0, -1, 0, 0.069]),np.array([0, 0, 1, -0.047]),np.array([1, 0, 0, 0.117]),np.array([0, 0, 0, 1])])
+        #rob3cam = np.array([np.array([0, -1, 0, 0.069]),np.array([0, 0, 1, -0.047]),np.array([1, 0, 0, 0.117]),np.array([0, 0, 0, 1])])
+        rob3cam = np.array([np.array([0, 0, 1, 0.069]),np.array([-1, 0, 0, -0.047]),np.array([0, -1, 0, 0.117]),np.array([0, 0, 0, 1])])    
 
-        cam2world =Pose()
-        cam2world.position.x = 0.069
-        cam2world.position.y = -0.047
-        cam2world.position.z = 0.117
-        cam2world.orientation.w = 1
 
         #self.transform_cam_to_world = trans.msg_to_se3(odometry.pose.pose)
         #self.transform_cam_to_world = np.matmul(trans.msg_to_se3(odometry.pose.pose),rob3cam)
@@ -321,8 +317,8 @@ class image_processing_node:
             return
 
         # set pixel position 
-        y = pix_pos.x
-        x = pix_pos.y
+        x = pix_pos.x
+        y = pix_pos.y
 
 
         p_h = np.array ([[x], [y], [1]])
@@ -333,8 +329,8 @@ class image_processing_node:
         p3d_w = np.array ([[ p3d_w_h [0][0]/ p3d_w_h [3][0]] , [p3d_w_h [1][0]/ p3d_w_h [3][0]] , [p3d_w_h [2][0]/ p3d_w_h [3][0]]]) 
 
         beacon_pose = Pose()
-        beacon_pose.position.x = p3d_w[1] #+ self.pose.position.x
-        beacon_pose.position.y = -p3d_w[0] #+ self.pose.position.y 
+        beacon_pose.position.x = p3d_w[0] 
+        beacon_pose.position.y = p3d_w[1] 
 
         print("K: \n{}".format(self.K))
         print("K-1: \n{}".format(np.linalg.inv(self.K)))
