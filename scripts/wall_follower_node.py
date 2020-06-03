@@ -38,6 +38,7 @@ class FollowSide(Enum):
 
 class wall_follower_node:
     def __init__(self):
+        self.init_flag = False # Keeps track of whether or not initialisation is done
         self.spin_time = 0 # Variable for spinning before starting wall following
         self.spin_flag = False # keeps track of state if we are spinning or not
         self.spin_duration = 4 # How long the robot will spin (in seconds)
@@ -103,113 +104,118 @@ class wall_follower_node:
             print "Unable to get transformation!"
 
 
+        # If wall follower is just started, initialise with a full rotation
+        if self.init_flag == False:
+            # If wallfollower is just started, spin for a full rotation before starting wall following
+            # if the spin flag is false then start spinning
+            if self.spin_flag == False:
+                vel_msg = Twist()
+                vel_msg.linear.x = 0
+                vel_msg.linear.y = 0
+                vel_msg.linear.z = 0
+                vel_msg.angular.x = 0
+                vel_msg.angular.y = 0
+                vel_msg.angular.z = 1
+                self.publisher_twist.publish(vel_msg)
+                rospy.logdebug('[Wall Follower] Started spinning')
 
-        # If wallfollower is just started, spin for a full rotation before starting wall following
-        # if the spin flag is false then start spinning
-        if self.spin_flag == False:
-            vel_msg = Twist()
-            vel_msg.linear.x = 0
-            vel_msg.linear.y = 0
-            vel_msg.linear.z = 0
-            vel_msg.angular.x = 0
-            vel_msg.angular.y = 0
-            vel_msg.angular.z = 1
-            self.publisher_twist.publish(vel_msg)
-            rospy.logdebug('[Wall Follower] Started spinning')
+                self.spin_flag = True  
+                self.spin_time = rospy.Time.now().to_sec()  
+            # Check if the robot has been spinning for a sufficient time
+            elif rospy.Time.now().to_sec() - self.spin_time > self.spin_duration: 
+                vel_msg = Twist()
+                vel_msg.linear.x = 0
+                vel_msg.linear.y = 0
+                vel_msg.linear.z = 0
+                vel_msg.angular.x = 0
+                vel_msg.angular.y = 0
+                vel_msg.angular.z = 0
+                self.publisher_twist.publish(vel_msg)
+                rospy.logdebug('[Wall Follower] Stopped spinning')
 
-            self.spin_flag = True  
-            self.spin_time = rospy.Time.now().to_sec()  
-        # Check if the robot has been spinning for a sufficient time
-        elif  rospy.Time.now().to_sec() - self.spin_time > self.spin_duration: 
-            vel_msg = Twist()
-            vel_msg.linear.x = 0
-            vel_msg.linear.y = 0
-            vel_msg.linear.z = 0
-            vel_msg.angular.x = 0
-            vel_msg.angular.y = 0
-            vel_msg.angular.z = 0
-            self.publisher_twist.publish(vel_msg)
-            rospy.logdebug('[Wall Follower] Stopped spinning')
+                self.spin_flag == False # Reset flag for new spin
+                self.init_flag == True # Done initilising
         
-
-        # We want to find how far in front of the robot the wall to the left extends
-        # and how far away the nearest point in front of the robot is.
-        x_side_max = -np.inf
-        x_front_min = np.inf
-        angle = data.angle_min
-
-        # Transform scans into 3D points relative to robots base frame
-        for scan in data.ranges: 
-            # 3D homogeneous point [x; y; z; 1]
-            point = np.array([[math.cos(angle) * scan], [math.sin(angle) * scan], [0], [1]])
-            point = np.matmul(transformation, point);
-
-            # Update angle
-            angle += data.angle_increment
-
-            # Unwrap
-            point_x = point[0][0]
-            point_y = point[1][0]
-
-            # Find if point is forward-most wall point on correct side 
-            if (math.fabs(point_x) <= ROBOT_RADIUS) and (math.fabs(point_y) <= MAX_SIDE_LIMIT):
-                if (self.follow_side == FollowSide.LEFT and point_y > 0) or (self.follow_side == FollowSide.RIGHT and point_y < 0):
-                    # Point is between the front and back of robot and within range on correct side
-                    if point_x > x_side_max:
-                        x_side_max = point_x
-
-            # Find if point is nearest wall point in front of the robot
-            if point_x > 0 and point_x <= MAX_APPROACH_DIST and math.fabs(point_y) < ROBOT_RADIUS:
-                # Point is between left and right sides of robot and within range from the front
-                if point_x < x_front_min:
-                    x_front_min = point_x
-
-        # print "Detected walls {0} left, {1} front".format(x_side_max, x_front_min)
-
-        turn = 0.0
-        drive = 0.0
-        if x_side_max == -np.inf:
-            # No wall to side, so turn that way
-            turn = 1.0
-            drive = 0.0
-            rospy.logdebug('[Wall Follower] Turning')
-        elif x_front_min <= MIN_APPROACH_DIST:
-            # Wall to side and blocked at front, so turn opposite way
-            turn = -1.0
-            drive = 0.0
-            rospy.logdebug('[Wall Follower] Going Forward')
+        # Done initialising, start wall following
         else:
-            # Wall to side but front is clear, so drive forward and start turning if 
-            # an opening is starting to appear to side
+            # We want to find how far in front of the robot the wall to the left extends
+            # and how far away the nearest point in front of the robot is.
+            x_side_max = -np.inf
+            x_front_min = np.inf
+            angle = data.angle_min
 
-            # If side wall doesn't extend past front of robot start turning and reduce speed
-            turn_side = np.clip((ROBOT_RADIUS - x_side_max) / (2 * ROBOT_RADIUS), 0.0, 1.0)
-            drive_side = np.clip((ROBOT_RADIUS + x_side_max) / (2 * ROBOT_RADIUS), 0.0, 1.0)
+            # Transform scans into 3D points relative to robots base frame
+            for scan in data.ranges: 
+                # 3D homogeneous point [x; y; z; 1]
+                point = np.array([[math.cos(angle) * scan], [math.sin(angle) * scan], [0], [1]])
+                point = np.matmul(transformation, point);
 
-            # If front wall is between MAX_APPROACH_DIST and MIN_APPROACH_DIST then slow down and reduce turn
-            turn_front = np.clip((MAX_APPROACH_DIST - x_front_min) / (MAX_APPROACH_DIST - MIN_APPROACH_DIST), 0.0, 1.0)
-            drive_front = np.clip((x_front_min - MIN_APPROACH_DIST) / (MAX_APPROACH_DIST - MIN_APPROACH_DIST), 0.0, 1.0)
+                # Update angle
+                angle += data.angle_increment
 
-            # Combine two turn and drive decisions
-            turn = turn_side - turn_front
-            drive = drive_side * drive_front
-            rospy.logdebug('[Wall Follower] Slow Turn')
+                # Unwrap
+                point_x = point[0][0]
+                point_y = point[1][0]
 
-        # Flip turn if we are following to the right
-        if self.follow_side == FollowSide.RIGHT:
-            turn *= -1.0
+                # Find if point is forward-most wall point on correct side 
+                if (math.fabs(point_x) <= ROBOT_RADIUS) and (math.fabs(point_y) <= MAX_SIDE_LIMIT):
+                    if (self.follow_side == FollowSide.LEFT and point_y > 0) or (self.follow_side == FollowSide.RIGHT and point_y < 0):
+                        # Point is between the front and back of robot and within range on correct side
+                        if point_x > x_side_max:
+                            x_side_max = point_x
 
-        # Convert to a Twist message for 'cmd_vel/'
-        vel_msg = Twist()
-        vel_msg.linear.x = drive * MAX_TRANS_SPEED
-        vel_msg.linear.y = 0
-        vel_msg.linear.z = 0
-        vel_msg.angular.x = 0
-        vel_msg.angular.y = 0
-        vel_msg.angular.z = turn * MAX_TURN_SPEED
-        # print "Publishing velocities {0} m/s, {1} r/s".format(vel_msg.linear.x, vel_msg.angular.z)
-        self.publisher_twist.publish(vel_msg)
-        self.stopped = False
+                # Find if point is nearest wall point in front of the robot
+                if point_x > 0 and point_x <= MAX_APPROACH_DIST and math.fabs(point_y) < ROBOT_RADIUS:
+                    # Point is between left and right sides of robot and within range from the front
+                    if point_x < x_front_min:
+                        x_front_min = point_x
+
+            # print "Detected walls {0} left, {1} front".format(x_side_max, x_front_min)
+
+            turn = 0.0
+            drive = 0.0
+            if x_side_max == -np.inf:
+                # No wall to side, so turn that way
+                turn = 1.0
+                drive = 0.0
+                rospy.logdebug('[Wall Follower] Turning')
+            elif x_front_min <= MIN_APPROACH_DIST:
+                # Wall to side and blocked at front, so turn opposite way
+                turn = -1.0
+                drive = 0.0
+                rospy.logdebug('[Wall Follower] Going Forward')
+            else:
+                # Wall to side but front is clear, so drive forward and start turning if 
+                # an opening is starting to appear to side
+
+                # If side wall doesn't extend past front of robot start turning and reduce speed
+                turn_side = np.clip((ROBOT_RADIUS - x_side_max) / (2 * ROBOT_RADIUS), 0.0, 1.0)
+                drive_side = np.clip((ROBOT_RADIUS + x_side_max) / (2 * ROBOT_RADIUS), 0.0, 1.0)
+
+                # If front wall is between MAX_APPROACH_DIST and MIN_APPROACH_DIST then slow down and reduce turn
+                turn_front = np.clip((MAX_APPROACH_DIST - x_front_min) / (MAX_APPROACH_DIST - MIN_APPROACH_DIST), 0.0, 1.0)
+                drive_front = np.clip((x_front_min - MIN_APPROACH_DIST) / (MAX_APPROACH_DIST - MIN_APPROACH_DIST), 0.0, 1.0)
+
+                # Combine two turn and drive decisions
+                turn = turn_side - turn_front
+                drive = drive_side * drive_front
+                rospy.logdebug('[Wall Follower] Slow Turn')
+
+            # Flip turn if we are following to the right
+            if self.follow_side == FollowSide.RIGHT:
+                turn *= -1.0
+
+            # Convert to a Twist message for 'cmd_vel/'
+            vel_msg = Twist()
+            vel_msg.linear.x = drive * MAX_TRANS_SPEED
+            vel_msg.linear.y = 0
+            vel_msg.linear.z = 0
+            vel_msg.angular.x = 0
+            vel_msg.angular.y = 0
+            vel_msg.angular.z = turn * MAX_TURN_SPEED
+            # print "Publishing velocities {0} m/s, {1} r/s".format(vel_msg.linear.x, vel_msg.angular.z)
+            self.publisher_twist.publish(vel_msg)
+            self.stopped = False
 
 
 
@@ -219,7 +225,7 @@ class wall_follower_node:
             self.explore = True
             return SetBoolResponse(True, 'Starting Exploring')
         elif start_stop.data==False and self.explore:
-            self.spin_flag = False # Reset spin flag to enable spin again for next start
+            self.init_flag = False # Reset init flag to enable init again for next start
             self.explore = False
             self.stopped = False
             # setting explore to false and stopped to false will cause the next laser scan
