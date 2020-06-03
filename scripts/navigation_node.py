@@ -124,6 +124,8 @@ class navigation_node:
 
     # Set the goal of the robot to the home position. 
     def robot_return_home(self):
+        # Make sure wall follower is stopped before returning
+        self.toggle_wallfollowing(False)
         # check if there is no stored home pose
         if not self.initPose:
             print("No home pose found. \n  check bringup order. ")
@@ -146,6 +148,8 @@ class navigation_node:
         self.pub_cancel_all_goals.publish()
         # Change state to PAUSED and publish
         self.set_robot_action_and_pub(RobotState.PAUSED)
+        # Tell wall follower to stop
+        self.toggle_wallfollowing(False)
 
         if(self.debug):
             print("Paused...")
@@ -173,18 +177,31 @@ class navigation_node:
             if (self.debug):
                 print("Robot parked in the garage. ")
         
-    # Returning to home call back checks is there is any more frontiers left. 
+    # If there are no frontiers left, switch to wall following to continue exploring 
     # 
     # @param frontiers, The subscribed frointer data from the robot, Type MarkerArray
     def frontiers_callback(self, frontiers):
         if(frontiers.markers == [] and self.robotCurrentState == RobotState.EXPLORING):
+            # Notify command server that all frontiers are explored
+            self.set_robot_action_and_pub(RobotState.DONE)
 
-            # Used with debug
+            # Continue exploring by starting wall following
+            self.toggle_wallfollowing(True)
+         
+         # Used with debug
             if(self.debug):
                 print("No more frontiers.")
-            # Change the state state to DONE and publish
-            self.set_robot_action_and_pub(RobotState.DONE)
-         
+
+    # Start wall following
+    def toggle_wallfollowing(self, state):
+        # Wait for service
+        rospy.wait_for_service('start_stop')
+        try:
+            # Create a service for the explore service to toggle state
+            pub_wallfollow_start_top = rospy.ServiceProxy('start_stop',SetBool)
+            pub_wallfollow_start_top(state) # tell wall follower to start
+        except rospy.ServiceException, e:
+            print "Service call failed: %s" %e
 
     
     # Set the current state of the robot and publishes it

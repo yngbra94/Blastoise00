@@ -58,11 +58,10 @@ class command_server_node:
     # changes state to return home if the the exploring is finished. 
     # if it was returning and it is finished it is stopped and prints reached home. 
     def callback_robot_state(self, data):
-        # If robot is exploring and is done, the maze is fully explored. Start returning home.
+        # If robot is exploring and is done, all frontiers are explored. Continue exploring until
+        # all beacons are found.
         if data.data == RobotState.DONE.value and self.state == RobotState.EXPLORING:
-            self.state = RobotState.RETURNING
-            self.previusState=RobotState.RETURNING
-            rospy.loginfo("Finished with exploring the maze")
+            rospy.loginfo("Done exploring all frontiers, continue exploring until all beacons are found.")
         
         # If the robot is returning home and is done, the robot has reached home.
         elif data.data == RobotState.DONE.value and self.state == RobotState.RETURNING:
@@ -81,8 +80,6 @@ class command_server_node:
             self.state = RobotState.RETURNING
             self.previusState=RobotState.RETURNING
             rospy.loginfo("beacons = 0 robot is returning")
-
- 
 
             
     # listens to if 'start' or 'stop' is recived.

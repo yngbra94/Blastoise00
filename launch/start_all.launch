@@ -8,6 +8,7 @@
     <!-- Navigation -->
     <include file="$(find Blastoise00)/launch/move_base.launch" />
     <include file="$(find Blastoise00)/launch/amcl.launch" />
+    <include file="$(find Blastoise00)/launch/wall_follower.launch" />
 
     <!-- Exploration -->
     <include file="$(find Blastoise00)/launch/explore.launch">
@@ -20,9 +21,9 @@
     <node pkg="Blastoise00" type="command_server_node.py" name="command_server_node" output="screen">
     </node>
 
-    <node pkg="Blastoise00" type="image_processing_node.py" name="image_processing_node" output="screen" >
+    <node pkg="Blastoise00" type="beacon_detector_node.py" name="beacon_detector_node" output="screen" >
         <rosparam file="$(find Blastoise00)/param/beacon_colours.yaml" command="load" />
-        <rosparam file="$(find Blastoise00)/param/beacons_0.yaml" />
+        <rosparam file="$(find Blastoise00)/param/beacons.yaml" />
     </node>
 
 </launch>
